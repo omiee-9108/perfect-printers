@@ -8,23 +8,15 @@ import {
   Search,
   ChevronRight,
   Filter,
-  CheckCircle2,
-  Clock,
   Printer,
-  FileText,
   AlertTriangle,
-  Play,
-  FileCheck,
   PauseCircle,
   XCircle,
   Truck,
   Eye,
-  SlidersHorizontal,
   Plus,
   Box,
   Calendar,
-  Sparkles,
-  ArrowUpRight,
 } from "lucide-react";
 
 export default function JobOrderDashboard() {
@@ -36,7 +28,6 @@ export default function JobOrderDashboard() {
     setActiveTab,
     openPrintModal,
     currentUser,
-    employees,
   } = useErp();
 
   const [selectedStage, setSelectedStage] = useState<string>("All Orders");

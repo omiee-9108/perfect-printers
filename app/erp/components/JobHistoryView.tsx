@@ -6,15 +6,7 @@ import {
   History,
   Building2,
   Layers,
-  Calendar,
-  User,
-  FileCheck,
-  CheckCircle2,
   Truck,
-  Printer,
-  ChevronRight,
-  TrendingDown,
-  Sparkles,
 } from "lucide-react";
 
 export default function JobHistoryView() {
@@ -219,7 +211,7 @@ export default function JobHistoryView() {
                 No floor audit records found for this job code.
               </div>
             ) : (
-              jobLogs.map((log, idx) => (
+              jobLogs.map((log) => (
                 <div key={log.id} className="relative pl-6 pb-4 border-l-2 border-emerald-300 last:border-l-0">
                   <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-emerald-600 border-2 border-white" />
                   

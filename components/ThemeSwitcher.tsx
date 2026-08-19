@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useTheme, THEME_OPTIONS } from "@/context/ThemeContext";
-import { Palette, Check, X, Sun, Moon } from "lucide-react";
+import { Palette, Check, X, Sun } from "lucide-react";
 
 export default function ThemeSwitcher() {
   const { currentTheme, setTheme } = useTheme();

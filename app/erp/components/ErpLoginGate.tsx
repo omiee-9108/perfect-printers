@@ -12,18 +12,13 @@ import {
   KeyRound,
   ArrowRight,
   ShieldAlert,
-  CheckCircle2,
-  Cpu,
-  Layers,
   Home,
   Eye,
   EyeOff,
-  Building2,
-  Sparkles,
 } from "lucide-react";
 
 export default function ErpLoginGate() {
-  const { login, loginWithRole, erpTheme } = useErp();
+  const { login, loginWithRole } = useErp();
 
   const [username, setUsername] = useState("admin_om");
   const [password, setPassword] = useState("perfect123");
@@ -32,7 +27,7 @@ export default function ErpLoginGate() {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberTerminal, setRememberTerminal] = useState(true);
   const [lockoutRemaining, setLockoutRemaining] = useState<number>(0);
-  const [failedAttempts, setFailedAttempts] = useState(0);
+  const failedAttemptsRef = React.useRef<number>(0);
 
   // Check lockout on mount and interval
   React.useEffect(() => {
@@ -65,22 +60,20 @@ export default function ErpLoginGate() {
       const res = login(username, password);
       setIsLoading(false);
       if (!res.success) {
-        setFailedAttempts((prev) => {
-          const updated = prev + 1;
-          if (updated >= 5) {
-            const lockoutUntil = Date.now() + 30000;
-            try {
-              sessionStorage.setItem("pp_erp_lockout_until", String(lockoutUntil));
-            } catch (e) {
-              console.error(e);
-            }
-            setLockoutRemaining(30);
-            setErrorMessage("Too many failed attempts. Terminal locked for 30 seconds.");
-          } else {
-            setErrorMessage(`${res.message || "Invalid credentials."} (${5 - updated} attempts remaining)`);
+        failedAttemptsRef.current += 1;
+        const updated = failedAttemptsRef.current;
+        if (updated >= 5) {
+          const lockoutUntil = Date.now() + 30000;
+          try {
+            sessionStorage.setItem("pp_erp_lockout_until", String(lockoutUntil));
+          } catch (e) {
+            console.error(e);
           }
-          return updated;
-        });
+          setLockoutRemaining(30);
+          setErrorMessage("Too many failed attempts. Terminal locked for 30 seconds.");
+        } else {
+          setErrorMessage(`${res.message || "Invalid credentials."} (${5 - updated} attempts remaining)`);
+        }
       }
     }, 450);
   };

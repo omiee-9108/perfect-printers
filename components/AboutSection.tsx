@@ -2,7 +2,6 @@
 
 import React from "react";
 import { ArrowRight, CheckCircle2, Factory, History, Sparkles, Award } from "lucide-react";
-import { COMPANY_INFO } from "@/data/content";
 
 interface AboutSectionProps {
   onOpenQuote: () => void;

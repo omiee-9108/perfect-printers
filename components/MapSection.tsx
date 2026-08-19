@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Navigation, ExternalLink, Factory, MapPin, Copy, Check } from "lucide-react";
+import { Navigation, ExternalLink, MapPin, Copy, Check } from "lucide-react";
 import { COMPANY_INFO } from "@/data/content";
 import { useTheme } from "@/context/ThemeContext";
 

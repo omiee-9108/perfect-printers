@@ -5,17 +5,9 @@ import { useErp } from "../context/ErpContext";
 import { MonthlyExpenses } from "../types";
 import {
   BarChart3,
-  TrendingUp,
-  DollarSign,
-  PackageCheck,
   Clock,
-  Layers,
-  Calendar,
   Save,
   CheckCircle2,
-  PieChart,
-  Boxes,
-  Users,
 } from "lucide-react";
 
 export default function ReportsView() {

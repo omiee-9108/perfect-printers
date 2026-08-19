@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { X, Send, CheckCircle2, MessageSquare } from "lucide-react";
-import { COMPANY_INFO } from "@/data/content";
 
 interface QuoteModalProps {
   isOpen: boolean;

@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import { useErp } from "../context/ErpContext";
-import { Printer, X, Download, CheckCircle, ShieldCheck } from "lucide-react";
+import { Printer, X } from "lucide-react";
 
 export default function DocumentModals() {
   const { activePrintModal, closePrintModal, dispatchOrder } = useErp();

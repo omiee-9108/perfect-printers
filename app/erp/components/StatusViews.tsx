@@ -2,21 +2,13 @@
 
 import React, { useState } from "react";
 import { useErp } from "../context/ErpContext";
-import { JobOrder, StageStatus } from "../types";
 import {
   CheckCircle,
   PauseCircle,
   XCircle,
   Search,
   RotateCcw,
-  FileText,
   Truck,
-  Printer,
-  Calendar,
-  Layers,
-  Sparkles,
-  Inbox,
-  AlertCircle,
 } from "lucide-react";
 
 interface StatusViewProps {
@@ -24,7 +16,7 @@ interface StatusViewProps {
 }
 
 export default function StatusViews({ statusType }: StatusViewProps) {
-  const { orders, restoreOrder, openPrintModal, currentUser } = useErp();
+  const { orders, restoreOrder, openPrintModal } = useErp();
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredOrders = orders.filter((o) => {
