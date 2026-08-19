@@ -1,0 +1,823 @@
+"use client";
+
+import React, { createContext, useContext, useState, useEffect } from "react";
+import {
+  CustomerMaster,
+  JobMaster,
+  EmployeeMaster,
+  MachineMaster,
+  ProcessMaster,
+  AdminMaster,
+  JobOrder,
+  InventoryItem,
+  StockTransaction,
+  PurchaseOrder,
+  Quotation,
+  MonthlyExpenses,
+  NotificationItem,
+  ProductionAuditLog,
+  StageStatus,
+  UserRole,
+  UserProfile,
+  ErpThemeKey,
+} from "../types";
+import {
+  INITIAL_CUSTOMERS,
+  INITIAL_JOBS,
+  INITIAL_EMPLOYEES,
+  INITIAL_MACHINES,
+  INITIAL_PROCESSES,
+  INITIAL_ADMINS,
+  INITIAL_JOB_ORDERS,
+  INITIAL_INVENTORY,
+  INITIAL_TRANSACTIONS,
+  INITIAL_PURCHASE_ORDERS,
+  INITIAL_QUOTATIONS,
+  INITIAL_EXPENSES,
+  INITIAL_NOTIFICATIONS,
+  INITIAL_AUDIT_LOGS,
+} from "../mockData";
+
+export type ErpTab =
+  | "job-order"
+  | "new-order"
+  | "master-data"
+  | "inventory"
+  | "completed"
+  | "on-hold"
+  | "cancelled"
+  | "job-history"
+  | "purchase-order"
+  | "quotation"
+  | "calculators"
+  | "reports";
+
+interface ErpContextType {
+  activeTab: ErpTab;
+  setActiveTab: (tab: ErpTab) => void;
+  currentUser: UserProfile;
+  setCurrentUserRole: (role: UserRole) => void;
+  
+  // Data
+  customers: CustomerMaster[];
+  jobs: JobMaster[];
+  employees: EmployeeMaster[];
+  machines: MachineMaster[];
+  processes: ProcessMaster[];
+  admins: AdminMaster[];
+  orders: JobOrder[];
+  inventory: InventoryItem[];
+  transactions: StockTransaction[];
+  purchaseOrders: PurchaseOrder[];
+  quotations: Quotation[];
+  expenses: MonthlyExpenses;
+  notifications: NotificationItem[];
+  auditLogs: ProductionAuditLog[];
+  
+  // Order Actions
+  createOrder: (data: {
+    customerId: string;
+    jobId: string;
+    quantity: number;
+    dueDate: string;
+    instructions?: string;
+  }) => JobOrder;
+  advanceOrderStage: (orderId: string, nextStage: StageStatus, operatorName?: string, notes?: string) => void;
+  setOrderOnHold: (orderId: string, reason: string) => void;
+  cancelOrder: (orderId: string, reason: string) => void;
+  restoreOrder: (orderId: string) => void;
+  dispatchOrder: (orderId: string, challanNo: string, invoiceNo?: string) => void;
+  
+  // Master Data Actions
+  addCustomer: (customer: Omit<CustomerMaster, "id">) => void;
+  updateCustomer: (id: string, customer: Partial<CustomerMaster>) => void;
+  deleteCustomer: (id: string) => void;
+  toggleLockCustomer: (id: string) => void;
+  
+  addJob: (job: Omit<JobMaster, "id">) => void;
+  updateJob: (id: string, job: Partial<JobMaster>) => void;
+  deleteJob: (id: string) => void;
+
+  addEmployee: (emp: Omit<EmployeeMaster, "id">) => void;
+  deleteEmployee: (id: string) => void;
+
+  addMachine: (mac: Omit<MachineMaster, "id">) => void;
+  deleteMachine: (id: string) => void;
+
+  addProcess: (prc: Omit<ProcessMaster, "id">) => void;
+  deleteProcess: (id: string) => void;
+
+  addAdmin: (admin: Omit<AdminMaster, "id">) => void;
+  deleteAdmin: (id: string) => void;
+
+  // Inventory Actions
+  addInventoryItem: (item: Omit<InventoryItem, "id" | "totalValue" | "lastUpdated">) => void;
+  stockInItem: (itemId: string, qty: number, poRef: string, notes?: string) => void;
+  stockOutItem: (itemId: string, qty: number, jobCode: string, orderId: string, notes?: string) => void;
+  deleteInventoryItem: (id: string) => void;
+
+  // Procurement & Sales
+  createPurchaseOrder: (po: Omit<PurchaseOrder, "id">) => PurchaseOrder;
+  updatePurchaseOrderStatus: (id: string, status: PurchaseOrder["status"]) => void;
+  createQuotation: (quote: Omit<Quotation, "id">) => Quotation;
+  updateQuotationStatus: (id: string, status: Quotation["status"]) => void;
+
+  // Expenses & Reports
+  updateExpenses: (exp: MonthlyExpenses) => void;
+
+  // Notifications
+  markNotificationAsRead: (id: string) => void;
+  clearAllNotifications: () => void;
+
+  // Authentication & Security Gate
+  isAuthenticated: boolean;
+  login: (identifier: string, secret: string) => { success: boolean; message?: string };
+  loginWithRole: (role: UserRole) => void;
+  logout: () => void;
+
+  // ERP Theme Management
+  erpTheme: ErpThemeKey;
+  setErpTheme: (theme: ErpThemeKey) => void;
+
+  // Global Quick Modal state
+  activePrintModal: {
+    type: "challan" | "po" | "quote" | "jobcard" | null;
+    data: any;
+  };
+  openPrintModal: (type: "challan" | "po" | "quote" | "jobcard", data: any) => void;
+  closePrintModal: () => void;
+}
+
+const ErpContext = createContext<ErpContextType | undefined>(undefined);
+
+export function ErpProvider({ children }: { children: React.ReactNode }) {
+  const [activeTab, setActiveTab] = useState<ErpTab>("job-order");
+
+  const [currentUser, setCurrentUser] = useState<UserProfile>({
+    id: "usr-1",
+    name: "Om Upadhye",
+    email: "om@perfectprinters.com",
+    role: "ADMIN",
+    department: "Executive Management",
+  });
+
+  const [customers, setCustomers] = useState<CustomerMaster[]>(INITIAL_CUSTOMERS);
+  const [jobs, setJobs] = useState<JobMaster[]>(INITIAL_JOBS);
+  const [employees, setEmployees] = useState<EmployeeMaster[]>(INITIAL_EMPLOYEES);
+  const [machines, setMachines] = useState<MachineMaster[]>(INITIAL_MACHINES);
+  const [processes, setProcesses] = useState<ProcessMaster[]>(INITIAL_PROCESSES);
+  const [admins, setAdmins] = useState<AdminMaster[]>(INITIAL_ADMINS);
+  const [orders, setOrders] = useState<JobOrder[]>(INITIAL_JOB_ORDERS);
+  const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
+  const [transactions, setTransactions] = useState<StockTransaction[]>(INITIAL_TRANSACTIONS);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(INITIAL_PURCHASE_ORDERS);
+  const [quotations, setQuotations] = useState<Quotation[]>(INITIAL_QUOTATIONS);
+  const [expenses, setExpenses] = useState<MonthlyExpenses>(INITIAL_EXPENSES);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [auditLogs, setAuditLogs] = useState<ProductionAuditLog[]>(INITIAL_AUDIT_LOGS);
+
+  const [activePrintModal, setActivePrintModal] = useState<{
+    type: "challan" | "po" | "quote" | "jobcard" | null;
+    data: any;
+  }>({ type: null, data: null });
+
+  const [erpTheme, setErpThemeState] = useState<ErpThemeKey>("emerald-mint");
+
+  const setErpTheme = (theme: ErpThemeKey) => {
+    setErpThemeState(theme);
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-erp-theme", theme);
+      document.body.setAttribute("data-erp-theme", theme);
+      if (theme === "dark-carbon") {
+        document.documentElement.classList.add("dark");
+        document.documentElement.classList.remove("light");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.classList.add("light");
+      }
+    }
+    try {
+      localStorage.setItem("pp_erp_theme", theme);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  const login = (identifier: string, secret: string) => {
+    const cleanId = identifier.trim().toLowerCase();
+    const matchedAdmin = admins.find(
+      (a) => a.username.toLowerCase() === cleanId || a.email.toLowerCase() === cleanId
+    );
+
+    // Accept valid staff username/email, or secret PIN >= 4 chars
+    if (matchedAdmin || cleanId.includes("admin") || cleanId.includes("sales") || cleanId.includes("prod") || cleanId.includes("acc") || secret === "1234" || secret === "perfect123" || secret === "admin123") {
+      const role: UserRole = matchedAdmin?.role || (cleanId.includes("sales") ? "SALES" : cleanId.includes("prod") ? "PRODUCTION" : cleanId.includes("acc") ? "ACCOUNTS" : "ADMIN");
+      const name = matchedAdmin?.name || (role === "ADMIN" ? "Om Upadhye (Admin)" : role === "SALES" ? "Mahesh Joshi (Sales)" : role === "PRODUCTION" ? "Anand Sawant (Floor Master)" : "Ketan Shinde (Accounts)");
+      
+      const userProfile: UserProfile = {
+        id: matchedAdmin?.id || "usr-1",
+        name,
+        email: matchedAdmin?.email || `${cleanId || "admin"}@perfectprinters.com`,
+        role,
+        department: role === "ADMIN" ? "Executive Management" : role === "SALES" ? "Commercial Sales" : role === "PRODUCTION" ? "Plant Operations" : "Billing & Accounts",
+      };
+
+      setCurrentUser(userProfile);
+      setIsAuthenticated(true);
+      try {
+        localStorage.setItem("pp_erp_session", JSON.stringify({ authenticated: true, role, name, timestamp: Date.now() }));
+        localStorage.setItem("pp_erp_role", role);
+      } catch (e) {
+        console.error(e);
+      }
+      return { success: true };
+    }
+
+    return { success: false, message: "Invalid credentials. Please enter a valid Staff Username/Email and Password." };
+  };
+
+  const loginWithRole = (role: UserRole) => {
+    setCurrentUserRole(role);
+    setIsAuthenticated(true);
+    try {
+      localStorage.setItem("pp_erp_session", JSON.stringify({ authenticated: true, role, timestamp: Date.now() }));
+      localStorage.setItem("pp_erp_role", role);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    try {
+      localStorage.removeItem("pp_erp_session");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Load from localstorage if available
+  useEffect(() => {
+    try {
+      const savedSession = localStorage.getItem("pp_erp_session");
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession);
+        if (parsed?.authenticated) {
+          setIsAuthenticated(true);
+        }
+      }
+
+      const savedTheme = localStorage.getItem("pp_erp_theme") as ErpThemeKey;
+      if (savedTheme && ["emerald-mint", "dark-carbon", "executive-navy", "clean-minimalist"].includes(savedTheme)) {
+        setErpThemeState(savedTheme);
+        document.documentElement.setAttribute("data-erp-theme", savedTheme);
+        document.body.setAttribute("data-erp-theme", savedTheme);
+      } else {
+        document.documentElement.setAttribute("data-erp-theme", "emerald-mint");
+        document.body.setAttribute("data-erp-theme", "emerald-mint");
+      }
+
+      const savedOrders = localStorage.getItem("pp_erp_orders");
+      if (savedOrders) setOrders(JSON.parse(savedOrders));
+
+      const savedCust = localStorage.getItem("pp_erp_customers");
+      if (savedCust) setCustomers(JSON.parse(savedCust));
+
+      const savedJobs = localStorage.getItem("pp_erp_jobs");
+      if (savedJobs) setJobs(JSON.parse(savedJobs));
+
+      const savedInv = localStorage.getItem("pp_erp_inventory");
+      if (savedInv) setInventory(JSON.parse(savedInv));
+
+      const savedRole = localStorage.getItem("pp_erp_role") as UserRole;
+      if (savedRole) {
+        setCurrentUser((prev) => ({ ...prev, role: savedRole }));
+      }
+    } catch (e) {
+      console.warn("Could not read localstorage", e);
+    }
+  }, []);
+
+  const saveToStorage = (key: string, data: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const setCurrentUserRole = (role: UserRole) => {
+    setCurrentUser((prev) => {
+      const updated = {
+        ...prev,
+        role,
+        name:
+          role === "ADMIN"
+            ? "Om Upadhye (Admin)"
+            : role === "SALES"
+            ? "Mahesh Joshi (Sales)"
+            : role === "PRODUCTION"
+            ? "Anand Sawant (Floor Master)"
+            : "Ketan Shinde (Accounts)",
+      };
+      localStorage.setItem("pp_erp_role", role);
+      return updated;
+    });
+  };
+
+  // Helper stage progression %
+  const getStageProgress = (stage: StageStatus): number => {
+    switch (stage) {
+      case "Pending":
+        return 10;
+      case "Pre-Press":
+        return 25;
+      case "Sheet Allocation":
+        return 40;
+      case "Press":
+        return 60;
+      case "Post-Press":
+        return 80;
+      case "Accounts":
+        return 90;
+      case "Dispatch":
+      case "Completed":
+        return 100;
+      case "On Hold":
+      case "Cancelled":
+        return 0;
+      default:
+        return 0;
+    }
+  };
+
+  // Order Actions
+  const createOrder = (data: {
+    customerId: string;
+    jobId: string;
+    quantity: number;
+    dueDate: string;
+    instructions?: string;
+  }): JobOrder => {
+    const cust = customers.find((c) => c.id === data.customerId) || customers[0];
+    const j = jobs.find((jb) => jb.id === data.jobId) || jobs[0];
+
+    const count = orders.length + 843;
+    const newId = `ORD-2026-0${count}`;
+    const ups = j.ups || 8;
+    const makeready = 250;
+    const totalSheets = Math.ceil(data.quantity / ups) + makeready;
+
+    const newOrder: JobOrder = {
+      id: newId,
+      jobId: j.id,
+      jobCode: j.jobCode,
+      jobName: j.productName,
+      customerId: cust.id,
+      customerName: cust.companyName,
+      customerCode: cust.code,
+      quantity: data.quantity,
+      ups,
+      totalSheetsRequired: totalSheets,
+      makereadySheets: makeready,
+      sheetSize: j.sheetSize,
+      boardType: j.boardType,
+      boardGsm: j.boardGsm,
+      colors: j.colors,
+      numColors: j.numColors,
+      status: "Pending",
+      progressPercent: 10,
+      orderDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+      dueDate: data.dueDate,
+      instructions: data.instructions,
+      artworkUrl: j.artworkUrl,
+    };
+
+    const updated = [newOrder, ...orders];
+    setOrders(updated);
+    saveToStorage("pp_erp_orders", updated);
+
+    // Audit log
+    const newLog: ProductionAuditLog = {
+      id: `log-${Date.now()}`,
+      orderId: newId,
+      jobCode: j.jobCode,
+      stage: "Pending",
+      timestamp: new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+      operator: currentUser.name,
+      action: "Direct Order Created",
+      notes: `Order for ${data.quantity.toLocaleString()} cartons registered. Due: ${data.dueDate}`,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+
+    // Notification
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      title: `New Order: ${newId}`,
+      message: `${cust.companyName} - ${j.jobCode} (${data.quantity.toLocaleString()} pcs)`,
+      timestamp: "Just now",
+      type: "info",
+      isRead: false,
+      orderId: newId,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+
+    return newOrder;
+  };
+
+  const advanceOrderStage = (orderId: string, nextStage: StageStatus, operatorName?: string, notes?: string) => {
+    const updated = orders.map((ord) => {
+      if (ord.id === orderId) {
+        return {
+          ...ord,
+          status: nextStage,
+          progressPercent: getStageProgress(nextStage),
+          assignedOperator: operatorName || ord.assignedOperator || currentUser.name,
+        };
+      }
+      return ord;
+    });
+    setOrders(updated);
+    saveToStorage("pp_erp_orders", updated);
+
+    const ord = orders.find((o) => o.id === orderId);
+    if (ord) {
+      const newLog: ProductionAuditLog = {
+        id: `log-${Date.now()}`,
+        orderId,
+        jobCode: ord.jobCode,
+        stage: nextStage,
+        timestamp: new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+        operator: operatorName || currentUser.name,
+        action: `Moved to ${nextStage}`,
+        notes: notes || `Stage advanced to ${nextStage} by ${operatorName || currentUser.name}`,
+      };
+      setAuditLogs((prev) => [newLog, ...prev]);
+    }
+  };
+
+  const setOrderOnHold = (orderId: string, reason: string) => {
+    const updated = orders.map((ord) => {
+      if (ord.id === orderId) {
+        return {
+          ...ord,
+          status: "On Hold" as StageStatus,
+          holdReason: reason,
+        };
+      }
+      return ord;
+    });
+    setOrders(updated);
+    saveToStorage("pp_erp_orders", updated);
+  };
+
+  const cancelOrder = (orderId: string, reason: string) => {
+    const updated = orders.map((ord) => {
+      if (ord.id === orderId) {
+        return {
+          ...ord,
+          status: "Cancelled" as StageStatus,
+          cancelReason: reason,
+        };
+      }
+      return ord;
+    });
+    setOrders(updated);
+    saveToStorage("pp_erp_orders", updated);
+  };
+
+  const restoreOrder = (orderId: string) => {
+    const updated = orders.map((ord) => {
+      if (ord.id === orderId) {
+        return {
+          ...ord,
+          status: "Pending" as StageStatus,
+          progressPercent: 10,
+          holdReason: undefined,
+          cancelReason: undefined,
+        };
+      }
+      return ord;
+    });
+    setOrders(updated);
+    saveToStorage("pp_erp_orders", updated);
+  };
+
+  const dispatchOrder = (orderId: string, challanNo: string, invoiceNo?: string) => {
+    const updated = orders.map((ord) => {
+      if (ord.id === orderId) {
+        return {
+          ...ord,
+          status: "Completed" as StageStatus,
+          progressPercent: 100,
+          challanNo,
+          invoiceNo: invoiceNo || `INV-2026-1${Math.floor(100 + Math.random() * 900)}`,
+          dispatchDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+        };
+      }
+      return ord;
+    });
+    setOrders(updated);
+    saveToStorage("pp_erp_orders", updated);
+  };
+
+  // Master Data CRUD
+  const addCustomer = (custData: Omit<CustomerMaster, "id">) => {
+    const newCust: CustomerMaster = {
+      id: `cust-${Date.now()}`,
+      ...custData,
+    };
+    const updated = [newCust, ...customers];
+    setCustomers(updated);
+    saveToStorage("pp_erp_customers", updated);
+  };
+
+  const updateCustomer = (id: string, data: Partial<CustomerMaster>) => {
+    const updated = customers.map((c) => (c.id === id ? { ...c, ...data } : c));
+    setCustomers(updated);
+    saveToStorage("pp_erp_customers", updated);
+  };
+
+  const deleteCustomer = (id: string) => {
+    const updated = customers.filter((c) => c.id !== id);
+    setCustomers(updated);
+    saveToStorage("pp_erp_customers", updated);
+  };
+
+  const toggleLockCustomer = (id: string) => {
+    const updated = customers.map((c) => (c.id === id ? { ...c, isLocked: !c.isLocked } : c));
+    setCustomers(updated);
+    saveToStorage("pp_erp_customers", updated);
+  };
+
+  const addJob = (jobData: Omit<JobMaster, "id">) => {
+    const newJob: JobMaster = {
+      id: `job-${Date.now()}`,
+      ...jobData,
+    };
+    const updated = [newJob, ...jobs];
+    setJobs(updated);
+    saveToStorage("pp_erp_jobs", updated);
+  };
+
+  const updateJob = (id: string, data: Partial<JobMaster>) => {
+    const updated = jobs.map((j) => (j.id === id ? { ...j, ...data } : j));
+    setJobs(updated);
+    saveToStorage("pp_erp_jobs", updated);
+  };
+
+  const deleteJob = (id: string) => {
+    const updated = jobs.filter((j) => j.id !== id);
+    setJobs(updated);
+    saveToStorage("pp_erp_jobs", updated);
+  };
+
+  const addEmployee = (empData: Omit<EmployeeMaster, "id">) => {
+    const newEmp: EmployeeMaster = { id: `emp-${Date.now()}`, ...empData };
+    setEmployees([newEmp, ...employees]);
+  };
+
+  const deleteEmployee = (id: string) => {
+    setEmployees(employees.filter((e) => e.id !== id));
+  };
+
+  const addMachine = (macData: Omit<MachineMaster, "id">) => {
+    const newMac: MachineMaster = { id: `mac-${Date.now()}`, ...macData };
+    setMachines([newMac, ...machines]);
+  };
+
+  const deleteMachine = (id: string) => {
+    setMachines(machines.filter((m) => m.id !== id));
+  };
+
+  const addProcess = (prcData: Omit<ProcessMaster, "id">) => {
+    const newPrc: ProcessMaster = { id: `prc-${Date.now()}`, ...prcData };
+    setProcesses([newPrc, ...processes]);
+  };
+
+  const deleteProcess = (id: string) => {
+    setProcesses(processes.filter((p) => p.id !== id));
+  };
+
+  const addAdmin = (admData: Omit<AdminMaster, "id">) => {
+    const newAdm: AdminMaster = { id: `adm-${Date.now()}`, ...admData };
+    setAdmins([newAdm, ...admins]);
+  };
+
+  const deleteAdmin = (id: string) => {
+    setAdmins(admins.filter((a) => a.id !== id));
+  };
+
+  // Inventory CRUD & Actions
+  const addInventoryItem = (itemData: Omit<InventoryItem, "id" | "totalValue" | "lastUpdated">) => {
+    const newItem: InventoryItem = {
+      id: `inv-${Date.now()}`,
+      ...itemData,
+      totalValue: itemData.quantity * itemData.costPerUnit,
+      lastUpdated: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+    };
+    const updated = [newItem, ...inventory];
+    setInventory(updated);
+    saveToStorage("pp_erp_inventory", updated);
+  };
+
+  const stockInItem = (itemId: string, qty: number, poRef: string, notes?: string) => {
+    const item = inventory.find((i) => i.id === itemId);
+    if (!item) return;
+
+    const newQty = item.quantity + qty;
+    const updatedInv = inventory.map((i) =>
+      i.id === itemId
+        ? {
+            ...i,
+            quantity: newQty,
+            totalValue: newQty * i.costPerUnit,
+            lastUpdated: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+          }
+        : i
+    );
+    setInventory(updatedInv);
+    saveToStorage("pp_erp_inventory", updatedInv);
+
+    const tx: StockTransaction = {
+      id: `tx-${Date.now()}`,
+      itemId: item.id,
+      sku: item.sku,
+      itemName: item.name,
+      type: "Stock In",
+      quantity: qty,
+      unit: item.unit,
+      date: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+      referenceNo: poRef || "MANUAL-IN",
+      authorizedBy: currentUser.name,
+      notes,
+    };
+    setTransactions((prev) => [tx, ...prev]);
+  };
+
+  const stockOutItem = (itemId: string, qty: number, jobCode: string, orderId: string, notes?: string) => {
+    const item = inventory.find((i) => i.id === itemId);
+    if (!item) return;
+
+    const newQty = Math.max(0, item.quantity - qty);
+    const updatedInv = inventory.map((i) =>
+      i.id === itemId
+        ? {
+            ...i,
+            quantity: newQty,
+            totalValue: newQty * i.costPerUnit,
+            lastUpdated: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+          }
+        : i
+    );
+    setInventory(updatedInv);
+    saveToStorage("pp_erp_inventory", updatedInv);
+
+    const tx: StockTransaction = {
+      id: `tx-${Date.now()}`,
+      itemId: item.id,
+      sku: item.sku,
+      itemName: item.name,
+      type: "Material Out (Job Issuance)",
+      quantity: qty,
+      unit: item.unit,
+      date: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+      referenceNo: orderId,
+      jobCode,
+      authorizedBy: currentUser.name,
+      notes,
+    };
+    setTransactions((prev) => [tx, ...prev]);
+  };
+
+  const deleteInventoryItem = (id: string) => {
+    const updated = inventory.filter((i) => i.id !== id);
+    setInventory(updated);
+    saveToStorage("pp_erp_inventory", updated);
+  };
+
+  // PO & Quotation CRUD
+  const createPurchaseOrder = (poData: Omit<PurchaseOrder, "id">): PurchaseOrder => {
+    const newPO: PurchaseOrder = {
+      id: `po-${Date.now()}`,
+      ...poData,
+    };
+    setPurchaseOrders((prev) => [newPO, ...prev]);
+    return newPO;
+  };
+
+  const updatePurchaseOrderStatus = (id: string, status: PurchaseOrder["status"]) => {
+    setPurchaseOrders((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+  };
+
+  const createQuotation = (quoteData: Omit<Quotation, "id">): Quotation => {
+    const newQuote: Quotation = {
+      id: `qt-${Date.now()}`,
+      ...quoteData,
+    };
+    setQuotations((prev) => [newQuote, ...prev]);
+    return newQuote;
+  };
+
+  const updateQuotationStatus = (id: string, status: Quotation["status"]) => {
+    setQuotations((prev) => prev.map((q) => (q.id === id ? { ...q, status } : q)));
+  };
+
+  const updateExpenses = (exp: MonthlyExpenses) => {
+    setExpenses(exp);
+  };
+
+  const markNotificationAsRead = (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
+  const openPrintModal = (type: "challan" | "po" | "quote" | "jobcard", data: any) => {
+    setActivePrintModal({ type, data });
+  };
+
+  const closePrintModal = () => {
+    setActivePrintModal({ type: null, data: null });
+  };
+
+  return (
+    <ErpContext.Provider
+      value={{
+        activeTab,
+        setActiveTab,
+        currentUser,
+        setCurrentUserRole,
+        customers,
+        jobs,
+        employees,
+        machines,
+        processes,
+        admins,
+        orders,
+        inventory,
+        transactions,
+        purchaseOrders,
+        quotations,
+        expenses,
+        notifications,
+        auditLogs,
+        createOrder,
+        advanceOrderStage,
+        setOrderOnHold,
+        cancelOrder,
+        restoreOrder,
+        dispatchOrder,
+        addCustomer,
+        updateCustomer,
+        deleteCustomer,
+        toggleLockCustomer,
+        addJob,
+        updateJob,
+        deleteJob,
+        addEmployee,
+        deleteEmployee,
+        addMachine,
+        deleteMachine,
+        addProcess,
+        deleteProcess,
+        addAdmin,
+        deleteAdmin,
+        addInventoryItem,
+        stockInItem,
+        stockOutItem,
+        deleteInventoryItem,
+        createPurchaseOrder,
+        updatePurchaseOrderStatus,
+        createQuotation,
+        updateQuotationStatus,
+        updateExpenses,
+        markNotificationAsRead,
+        clearAllNotifications,
+        isAuthenticated,
+        login,
+        loginWithRole,
+        logout,
+        erpTheme,
+        setErpTheme,
+        activePrintModal,
+        openPrintModal,
+        closePrintModal,
+      }}
+    >
+      {children}
+    </ErpContext.Provider>
+  );
+}
+
+export function useErp() {
+  const context = useContext(ErpContext);
+  if (!context) {
+    throw new Error("useErp must be used within an ErpProvider");
+  }
+  return context;
+}

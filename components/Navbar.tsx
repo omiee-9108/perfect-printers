@@ -125,6 +125,15 @@ export default function Navbar({ onOpenQuote }: NavbarProps) {
               <span className="font-semibold">{COMPANY_INFO.phone}</span>
             </a>
 
+            {/* ERP Portal Link */}
+            <Link
+              href="/erp"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-emerald-300 bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 rounded-lg shadow-sm transition-all hover:scale-105"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>ERP Portal</span>
+            </Link>
+
             {/* Primary CTA - Get a Quote */}
             <button
               onClick={onOpenQuote}
@@ -141,6 +150,12 @@ export default function Navbar({ onOpenQuote }: NavbarProps) {
 
           {/* Mobile Menu Toggle */}
           <div className="flex md:hidden items-center gap-2">
+            <Link
+              href="/erp"
+              className="px-2.5 py-1.5 text-xs font-bold rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700 shadow-sm"
+            >
+              ERP
+            </Link>
             <button
               onClick={onOpenQuote}
               className="px-3 py-1.5 text-xs font-semibold rounded-md shadow-sm"

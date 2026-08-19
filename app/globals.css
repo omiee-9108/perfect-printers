@@ -146,6 +146,132 @@
   --nav-bg: rgba(10, 10, 11, 0.92);
 }
 
+/* ========================================================== */
+/* ERP SYSTEM THEMES (4 HIGH-CONTRAST PALETTES)               */
+/* ========================================================== */
+
+/* 1. EMERALD MINT (SIGNATURE PACKAGING PRESS) */
+[data-erp-theme="emerald-mint"] {
+  --bg-main: #f0fdf4;
+  --bg-section: #ecfdf5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-heading: #0f172a;
+  --accent-primary: #059669;
+  --accent-secondary: #047857;
+  --border-card: #e2e8f0;
+  --nav-bg: #064e3b;
+  --nav-border: #043d2e;
+}
+
+[data-erp-theme="emerald-mint"] body {
+  background-color: #f0fdf4 !important;
+  color: #0f172a !important;
+}
+
+/* 2. HEIDELBERG DARK CARBON (INDUSTRIAL DARK MODE) */
+[data-erp-theme="dark-carbon"] {
+  --bg-main: #0b0f19;
+  --bg-section: #090d15;
+  --bg-card: #111827;
+  --bg-card-hover: #172033;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-heading: #ffffff;
+  --accent-primary: #06b6d4;
+  --accent-secondary: #0891b2;
+  --border-card: #1f2937;
+  --nav-bg: #070a12;
+  --nav-border: #1e293b;
+}
+
+[data-erp-theme="dark-carbon"] body {
+  background-color: #0b0f19 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-erp-theme="dark-carbon"] .bg-white {
+  background-color: #111827 !important;
+  border-color: #1f2937 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-erp-theme="dark-carbon"] .bg-slate-50,
+[data-erp-theme="dark-carbon"] .bg-slate-100 {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+[data-erp-theme="dark-carbon"] .text-slate-900,
+[data-erp-theme="dark-carbon"] .text-slate-800,
+[data-erp-theme="dark-carbon"] .text-slate-700 {
+  color: #f8fafc !important;
+}
+
+[data-erp-theme="dark-carbon"] .text-slate-600,
+[data-erp-theme="dark-carbon"] .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+[data-erp-theme="dark-carbon"] .border-slate-100,
+[data-erp-theme="dark-carbon"] .border-slate-200,
+[data-erp-theme="dark-carbon"] .border-slate-300 {
+  border-color: #1f2937 !important;
+}
+
+[data-erp-theme="dark-carbon"] input,
+[data-erp-theme="dark-carbon"] select,
+[data-erp-theme="dark-carbon"] textarea {
+  background-color: #0b0f19 !important;
+  border-color: #374151 !important;
+  color: #ffffff !important;
+}
+
+/* 3. CORPORATE EXECUTIVE NAVY & GOLD */
+[data-erp-theme="executive-navy"] {
+  --bg-main: #f1f5f9;
+  --bg-section: #e2e8f0;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-heading: #0f172a;
+  --accent-primary: #d97706;
+  --accent-secondary: #1e3a8a;
+  --border-card: #cbd5e1;
+  --nav-bg: #05162a;
+  --nav-border: #030d1a;
+}
+
+[data-erp-theme="executive-navy"] body {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* 4. MINIMALIST STUDIO SLATE */
+[data-erp-theme="clean-minimalist"] {
+  --bg-main: #f8fafc;
+  --bg-section: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-heading: #0f172a;
+  --accent-primary: #2563eb;
+  --accent-secondary: #1d4ed8;
+  --border-card: #e2e8f0;
+  --nav-bg: #0f172a;
+  --nav-border: #020617;
+}
+
+[data-erp-theme="clean-minimalist"] body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
