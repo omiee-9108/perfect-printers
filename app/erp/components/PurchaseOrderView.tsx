@@ -2,36 +2,18 @@
 
 import React, { useState } from "react";
 import { useErp } from "../context/ErpContext";
-import { PurchaseOrder, POLineItem } from "../types";
-import {
-  ShoppingCart,
-  Plus,
-  Trash2,
-  Printer,
-  FileCheck,
-  Building2,
-  Calendar,
-  Sparkles,
-  Download,
-  CheckCircle,
-} from "lucide-react";
+import { POLineItem } from "../types";
+import { formatDocketDate, addDaysAndFormat } from "../utils/date";
+import { ShoppingCart, Plus, Trash2, Printer } from "lucide-react";
 
 export default function PurchaseOrderView() {
   const { purchaseOrders, createPurchaseOrder, openPrintModal } = useErp();
 
   const [vendorName, setVendorName] = useState("Paper Trade Corporation (ITC Dealer)");
   const [vendorGstin, setVendorGstin] = useState("27AAACP9910D1ZL");
-  const [vendorAddress, setVendorAddress] = useState("Industrial Area, Kolhapur, MH - 416001");
-  const [poDate, setPoDate] = useState(
-    new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-  );
-  const [deliveryDate, setDeliveryDate] = useState(
-    new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
-  );
+  const [vendorAddress] = useState("Industrial Area, Kolhapur, MH - 416001");
+  const [poDate, setPoDate] = useState(formatDocketDate());
+  const [deliveryDate, setDeliveryDate] = useState(addDaysAndFormat(5));
   const [gstRate, setGstRate] = useState<number>(18);
   const [terms, setTerms] = useState(
     "1. 30 Days credit from date of invoice.\n2. Raw material must strictly meet packaging moisture tolerances (6-7%).\n3. Defective sheets subject to immediate rejection and replacement."

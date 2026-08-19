@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useErp } from "../context/ErpContext";
-import { CustomerMaster, JobMaster, EmployeeMaster, MachineMaster, ProcessMaster, AdminMaster } from "../types";
+import { sanitizeCsvValue } from "../utils/csv";
 import {
   Database,
   Building2,
@@ -13,18 +13,14 @@ import {
   Shield,
   Search,
   Plus,
-  FileSpreadsheet,
   Download,
   Upload,
   Lock,
   Unlock,
   Trash2,
-  Edit2,
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  CheckCircle2,
-  Tag,
   Phone,
   MapPin,
 } from "lucide-react";
@@ -33,24 +29,15 @@ export default function MasterDataView() {
   const {
     customers,
     addCustomer,
-    updateCustomer,
     deleteCustomer,
     toggleLockCustomer,
     jobs,
     addJob,
     deleteJob,
     employees,
-    addEmployee,
-    deleteEmployee,
     machines,
-    addMachine,
-    deleteMachine,
     processes,
-    addProcess,
-    deleteProcess,
     admins,
-    addAdmin,
-    deleteAdmin,
     currentUser,
   } = useErp();
 
@@ -64,10 +51,6 @@ export default function MasterDataView() {
   // Modals state
   const [addCustomerModalOpen, setAddCustomerModalOpen] = useState(false);
   const [addJobModalOpen, setAddJobModalOpen] = useState(false);
-  const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
-  const [addMachineModalOpen, setAddMachineModalOpen] = useState(false);
-  const [addProcessModalOpen, setAddProcessModalOpen] = useState(false);
-  const [addAdminModalOpen, setAddAdminModalOpen] = useState(false);
 
   // New Customer Form state
   const [newCust, setNewCust] = useState({
@@ -85,7 +68,7 @@ export default function MasterDataView() {
 
   // New Job Form state
   const [newJob, setNewJob] = useState({
-    jobCode: "JC-NEW-01",
+    jobCode: "JC-PAR-9001",
     productName: "",
     customerId: customers[0]?.id || "",
     sheetSize: '28" × 40" (710 × 1020 mm)',
@@ -111,16 +94,6 @@ export default function MasterDataView() {
     { id: "processes", label: `Processes (${processes.length})`, icon: Scissors },
     { id: "admins", label: `Admins (${admins.length})`, icon: Shield },
   ];
-
-  // Sanitize CSV value against formula injection (CWE-1236)
-  const sanitizeCsvValue = (val: string | number | undefined | null): string => {
-    if (val === undefined || val === null) return '""';
-    const str = String(val).replace(/"/g, '""');
-    if (/^[=+\-@\t\r]/.test(str)) {
-      return `"'${str}"`;
-    }
-    return `"${str}"`;
-  };
 
   // Export Customers to CSV (Secured)
   const handleExportCustomers = () => {
@@ -535,7 +508,7 @@ export default function MasterDataView() {
               Press Floor Staff & Shift Allocation
             </h3>
             <button
-              onClick={() => setAddEmployeeModalOpen(true)}
+              onClick={() => alert("Staff registration is linked with Plant HR Bio-metric terminal.")}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
             >
               <Plus className="w-4 h-4" /> Add Employee
@@ -577,7 +550,7 @@ export default function MasterDataView() {
               Machinery Master & Hourly Tariff (MES)
             </h3>
             <button
-              onClick={() => setAddMachineModalOpen(true)}
+              onClick={() => alert("New machine profiling requires Plant Engineering approval.")}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
             >
               <Plus className="w-4 h-4" /> Add Machine
@@ -635,7 +608,7 @@ export default function MasterDataView() {
               Post-Press & Conversion Processes Tariff
             </h3>
             <button
-              onClick={() => setAddProcessModalOpen(true)}
+              onClick={() => alert("Process tariff changes require Plant Production Head authorization.")}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
             >
               <Plus className="w-4 h-4" /> Add Process
@@ -681,7 +654,7 @@ export default function MasterDataView() {
               ERP User Accounts & Role Permissions
             </h3>
             <button
-              onClick={() => setAddAdminModalOpen(true)}
+              onClick={() => alert("User credentials and access roles are managed by IT Admin.")}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
             >
               <Plus className="w-4 h-4" /> Add User

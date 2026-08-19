@@ -2,18 +2,9 @@
 
 import React, { useState } from "react";
 import { useErp } from "../context/ErpContext";
-import { Quotation, QuotationLineItem } from "../types";
-import {
-  FileSpreadsheet,
-  Plus,
-  Trash2,
-  Printer,
-  Building2,
-  Calendar,
-  Sparkles,
-  Download,
-  Percent,
-} from "lucide-react";
+import { QuotationLineItem } from "../types";
+import { formatDocketDate, addDaysAndFormat } from "../utils/date";
+import { FileSpreadsheet, Plus, Trash2, Printer } from "lucide-react";
 
 export default function QuotationView() {
   const { customers, quotations, createQuotation, openPrintModal } = useErp();
@@ -24,16 +15,8 @@ export default function QuotationView() {
   const [contactPerson, setContactPerson] = useState(
     customers[0]?.contactPerson || "Procurement Manager"
   );
-  const [quoteDate, setQuoteDate] = useState(
-    new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-  );
-  const [validUntil, setValidUntil] = useState(
-    new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
-  );
+  const [quoteDate, setQuoteDate] = useState(formatDocketDate());
+  const [validUntil, setValidUntil] = useState(addDaysAndFormat(15));
   const [gstRate, setGstRate] = useState<number>(18);
   const [terms, setTerms] = useState(
     "1. 50% Advance with Purchase Order, balance payment against dispatch.\n2. Plate & Die charges included for order runs exceeding 50,000 cartons.\n3. Delivery within 7-8 working days from digital PDF artwork approval."

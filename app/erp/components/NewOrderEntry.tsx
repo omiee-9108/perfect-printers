@@ -2,18 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useErp } from "../context/ErpContext";
+import { addDaysAndFormat } from "../utils/date";
 import {
   PlusCircle,
   Building2,
-  FileCheck,
   CheckCircle,
   Calendar,
   Layers,
   ArrowRight,
   Sparkles,
-  Info,
   ExternalLink,
-  ShieldCheck,
 } from "lucide-react";
 
 export default function NewOrderEntry() {
@@ -24,13 +22,7 @@ export default function NewOrderEntry() {
   );
   const [selectedJobId, setSelectedJobId] = useState<string>(jobs[0]?.id || "");
   const [quantity, setQuantity] = useState<number>(50000);
-  const [dueDate, setDueDate] = useState<string>(
-    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
-  );
+  const [dueDate, setDueDate] = useState<string>(addDaysAndFormat(7));
   const [instructions, setInstructions] = useState<string>("");
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [createdOrderId, setCreatedOrderId] = useState<string>("");

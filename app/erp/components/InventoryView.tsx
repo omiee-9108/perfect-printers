@@ -2,23 +2,17 @@
 
 import React, { useState } from "react";
 import { useErp } from "../context/ErpContext";
-import { InventoryItem, StockTransaction } from "../types";
+import { sanitizeCsvValue } from "../utils/csv";
+import { InventoryItem } from "../types";
 import {
   Boxes,
   Search,
   Plus,
   ArrowDownLeft,
-  ArrowUpRight,
   History,
   AlertTriangle,
   Download,
-  Filter,
   Trash2,
-  Eye,
-  CheckCircle2,
-  Package,
-  Layers,
-  Sparkles,
 } from "lucide-react";
 
 export default function InventoryView() {
@@ -27,7 +21,6 @@ export default function InventoryView() {
     transactions,
     addInventoryItem,
     stockInItem,
-    stockOutItem,
     deleteInventoryItem,
     currentUser,
   } = useErp();
@@ -104,16 +97,6 @@ export default function InventoryView() {
   const lowStockCount = inventory.filter(
     (i) => i.quantity <= i.reorderLevel
   ).length;
-
-  // Sanitize CSV value against formula injection (CWE-1236)
-  const sanitizeCsvValue = (val: string | number | undefined | null): string => {
-    if (val === undefined || val === null) return '""';
-    const str = String(val).replace(/"/g, '""');
-    if (/^[=+\-@\t\r]/.test(str)) {
-      return `"'${str}"`;
-    }
-    return `"${str}"`;
-  };
 
   // Export Stock List to CSV (Secured against CWE-1236)
   const handleExportInventory = () => {
