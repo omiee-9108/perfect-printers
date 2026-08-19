@@ -31,10 +31,33 @@ export default function ErpLoginGate() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [rememberTerminal, setRememberTerminal] = useState(true);
+  const [lockoutRemaining, setLockoutRemaining] = useState<number>(0);
   const [failedAttempts, setFailedAttempts] = useState(0);
+
+  // Check lockout on mount and interval
+  React.useEffect(() => {
+    const checkLockout = () => {
+      try {
+        const until = Number(sessionStorage.getItem("pp_erp_lockout_until") || 0);
+        const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+        setLockoutRemaining(remaining);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    checkLockout();
+    const interval = setInterval(checkLockout, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (lockoutRemaining > 0) {
+      setErrorMessage(`Terminal temporarily locked due to repeated failed attempts. Please wait ${lockoutRemaining}s.`);
+      return;
+    }
+
     setErrorMessage("");
     setIsLoading(true);
 
@@ -42,8 +65,22 @@ export default function ErpLoginGate() {
       const res = login(username, password);
       setIsLoading(false);
       if (!res.success) {
-        setFailedAttempts((prev) => prev + 1);
-        setErrorMessage(res.message || "Invalid credentials.");
+        setFailedAttempts((prev) => {
+          const updated = prev + 1;
+          if (updated >= 5) {
+            const lockoutUntil = Date.now() + 30000;
+            try {
+              sessionStorage.setItem("pp_erp_lockout_until", String(lockoutUntil));
+            } catch (e) {
+              console.error(e);
+            }
+            setLockoutRemaining(30);
+            setErrorMessage("Too many failed attempts. Terminal locked for 30 seconds.");
+          } else {
+            setErrorMessage(`${res.message || "Invalid credentials."} (${5 - updated} attempts remaining)`);
+          }
+          return updated;
+        });
       }
     }, 450);
   };

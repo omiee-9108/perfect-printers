@@ -53,9 +53,10 @@ export default function NewOrderEntry() {
     }
   }, [selectedCustomerId]);
 
-  const ups = currentJob?.ups || 10;
-  const makereadyBuffer = 250;
-  const calculatedSheets = Math.ceil(quantity / ups) + makereadyBuffer;
+  const safeUps = Math.max(1, currentJob?.ups || 1);
+  const safeQty = Math.max(1, Number(quantity) || 1);
+  const makereadyBuffer = (currentJob?.numColors || 4) >= 5 ? 350 : 250;
+  const calculatedSheets = Math.ceil(safeQty / safeUps) + makereadyBuffer;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,7 +307,7 @@ export default function NewOrderEntry() {
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400 font-mono mt-1">
-                  Formula: ({quantity.toLocaleString()} pcs ÷ {ups} ups) + {makereadyBuffer} make-ready buffer
+                  Formula: ({quantity.toLocaleString()} pcs ÷ {safeUps} ups) + {makereadyBuffer} make-ready buffer
                 </p>
               </div>
 

@@ -227,7 +227,9 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(userProfile);
       setIsAuthenticated(true);
       try {
-        localStorage.setItem("pp_erp_session", JSON.stringify({ authenticated: true, role, name, timestamp: Date.now() }));
+        const sessionData = JSON.stringify({ authenticated: true, role, name, timestamp: Date.now() });
+        localStorage.setItem("pp_erp_session", sessionData);
+        sessionStorage.setItem("pp_erp_session", sessionData);
         localStorage.setItem("pp_erp_role", role);
       } catch (e) {
         console.error(e);
@@ -242,7 +244,9 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserRole(role);
     setIsAuthenticated(true);
     try {
-      localStorage.setItem("pp_erp_session", JSON.stringify({ authenticated: true, role, timestamp: Date.now() }));
+      const sessionData = JSON.stringify({ authenticated: true, role, timestamp: Date.now() });
+      localStorage.setItem("pp_erp_session", sessionData);
+      sessionStorage.setItem("pp_erp_session", sessionData);
       localStorage.setItem("pp_erp_role", role);
     } catch (e) {
       console.error(e);
@@ -253,19 +257,27 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(false);
     try {
       localStorage.removeItem("pp_erp_session");
+      sessionStorage.removeItem("pp_erp_session");
     } catch (e) {
       console.error(e);
     }
   };
 
-  // Load from localstorage if available
+  // Load from localstorage if available with 8-hour shift expiration check
   useEffect(() => {
     try {
-      const savedSession = localStorage.getItem("pp_erp_session");
+      const SESSION_MAX_AGE_MS = 8 * 60 * 60 * 1000; // 8-hour shift timeout
+      const savedSession = localStorage.getItem("pp_erp_session") || sessionStorage.getItem("pp_erp_session");
       if (savedSession) {
         const parsed = JSON.parse(savedSession);
-        if (parsed?.authenticated) {
+        if (parsed?.authenticated && parsed?.timestamp && (Date.now() - parsed.timestamp) < SESSION_MAX_AGE_MS) {
           setIsAuthenticated(true);
+          if (parsed.role) {
+            setCurrentUser((prev) => ({ ...prev, role: parsed.role, name: parsed.name || prev.name }));
+          }
+        } else {
+          localStorage.removeItem("pp_erp_session");
+          sessionStorage.removeItem("pp_erp_session");
         }
       }
 

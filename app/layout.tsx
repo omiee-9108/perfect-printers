@@ -138,6 +138,13 @@ const jsonLd = {
   }
 };
 
+function safeJsonLd(obj: unknown): string {
+  return JSON.stringify(obj)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -154,7 +161,7 @@ export default function RootLayout({
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
         />
       </head>
       <body className="bg-[#070A0F] text-slate-100 min-h-screen flex flex-col font-sans antialiased">

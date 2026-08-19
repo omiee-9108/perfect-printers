@@ -212,8 +212,10 @@ export default function CostCalculators() {
   // Margin slider
   const [mcMarginPercent, setMcMarginPercent] = useState<number>(25);
 
-  // Mono Carton Calculations
-  const rawSheetsRequired = Math.ceil(mcCartonQty / mcUps);
+  // Mono Carton Calculations (Clamped against Division by Zero)
+  const safeMcCartonQty = Math.max(1, mcCartonQty || 1);
+  const safeMcUps = Math.max(1, mcUps || 1);
+  const rawSheetsRequired = Math.ceil(safeMcCartonQty / safeMcUps);
   const totalSheetsWithBuffer = Math.ceil(rawSheetsRequired * (1 + mcBoardWastagePercent / 100)) + mcMakereadySheets;
   
   // Sheet weight in kg: (L in * W in * GSM) / (1550 * 1000)
@@ -225,7 +227,8 @@ export default function CostCalculators() {
   const ctpTotal = secCtpEnabled ? mcNumColors * mcPlatesPerColor * mcPlateCost : 0;
 
   // Printing Total
-  const printHours = totalSheetsWithBuffer / mcPressSpeedImp;
+  const safePressSpeed = Math.max(100, mcPressSpeedImp || 1000);
+  const printHours = totalSheetsWithBuffer / safePressSpeed;
   const printTotal = secPrintEnabled ? Math.max(1, printHours) * mcPressHourlyRate : 0;
 
   // Post Print Total
@@ -236,22 +239,25 @@ export default function CostCalculators() {
   }
 
   // Punching Total
-  const punchHours = totalSheetsWithBuffer / mcPunchSpeed;
+  const safePunchSpeed = Math.max(100, mcPunchSpeed || 1000);
+  const safeDieAmortize = Math.max(1, mcDieAmortizeJobs || 1);
+  const punchHours = totalSheetsWithBuffer / safePunchSpeed;
   const punchTotal = secPunchEnabled
-    ? mcDieCost / mcDieAmortizeJobs + Math.max(1, punchHours) * mcPunchMachineRate
+    ? mcDieCost / safeDieAmortize + Math.max(1, punchHours) * mcPunchMachineRate
     : 0;
 
   // Pasting Total
-  const pasteHours = mcCartonQty / mcPasteSpeed;
+  const safePasteSpeed = Math.max(100, mcPasteSpeed || 1000);
+  const pasteHours = safeMcCartonQty / safePasteSpeed;
   const pasteTotal = secPasteEnabled
     ? Math.max(1, pasteHours) * mcPasteRate + mcGlueCostTotal
     : 0;
 
   const monoCartonGrandTotal =
     totalBoardCost + ctpTotal + printTotal + postPrintTotal + punchTotal + pasteTotal;
-  const costPerCarton = monoCartonGrandTotal / mcCartonQty;
+  const costPerCarton = monoCartonGrandTotal / safeMcCartonQty;
   const sellingPricePerCarton = costPerCarton * (1 + mcMarginPercent / 100);
-  const totalJobValueWithMargin = sellingPricePerCarton * mcCartonQty;
+  const totalJobValueWithMargin = sellingPricePerCarton * safeMcCartonQty;
 
   const tools = [
     { id: "monocarton", label: "Flagship Mono Carton Estimator", icon: Package },
