@@ -262,6 +262,7 @@ export default function JobOrderDashboard() {
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
+              data-testid="kanban-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -433,6 +434,7 @@ export default function JobOrderDashboard() {
 
                           {/* Print Docket */}
                           <button
+                            data-testid="print-docket-btn"
                             onClick={() => openPrintModal("jobcard", order)}
                             className="p-1.5 rounded-lg text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-200 transition-colors"
                             title="Print Press Floor Docket"

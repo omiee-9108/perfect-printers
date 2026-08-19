@@ -211,8 +211,19 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
       (a) => a.username.toLowerCase() === cleanId || a.email.toLowerCase() === cleanId
     );
 
-    // Accept valid staff username/email, or secret PIN >= 4 chars
-    if (matchedAdmin || cleanId.includes("admin") || cleanId.includes("sales") || cleanId.includes("prod") || cleanId.includes("acc") || secret === "1234" || secret === "perfect123" || secret === "admin123") {
+    const isValidPassword =
+      secret === "1234" ||
+      secret === "perfect123" ||
+      secret === "admin123";
+
+    const isValidUsername =
+      !!matchedAdmin ||
+      cleanId.includes("admin") ||
+      cleanId.includes("sales") ||
+      cleanId.includes("prod") ||
+      cleanId.includes("acc");
+
+    if (isValidUsername && isValidPassword) {
       const role: UserRole = matchedAdmin?.role || (cleanId.includes("sales") ? "SALES" : cleanId.includes("prod") ? "PRODUCTION" : cleanId.includes("acc") ? "ACCOUNTS" : "ADMIN");
       const name = matchedAdmin?.name || (role === "ADMIN" ? "Om Upadhye (Admin)" : role === "SALES" ? "Mahesh Joshi (Sales)" : role === "PRODUCTION" ? "Anand Sawant (Floor Master)" : "Ketan Shinde (Accounts)");
       

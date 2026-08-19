@@ -282,6 +282,7 @@ export default function MasterDataView() {
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
+                data-testid="master-data-search"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

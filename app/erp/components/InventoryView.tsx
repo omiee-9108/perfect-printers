@@ -377,6 +377,7 @@ export default function InventoryView() {
                           <div className="flex items-center justify-end gap-1.5">
                             {/* Stock In Button */}
                             <button
+                              data-testid="stock-in-btn"
                               onClick={() => {
                                 setStockInModalItem(item);
                                 setStockInQty(1000);

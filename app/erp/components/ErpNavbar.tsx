@@ -232,6 +232,7 @@ export default function ErpNavbar() {
           {/* ERP Theme Switcher */}
           <div className="relative">
             <button
+              data-testid="erp-theme-btn"
               onClick={() => {
                 setThemeDropdownOpen(!themeDropdownOpen);
                 setRoleDropdownOpen(false);
@@ -382,6 +383,7 @@ export default function ErpNavbar() {
           {/* Sign Out / Lock Session Button */}
           <button
             type="button"
+            data-testid="erp-logout-btn"
             onClick={logout}
             className="p-2 rounded-lg bg-emerald-900/60 hover:bg-red-950/70 text-emerald-200 hover:text-red-200 border border-emerald-700 hover:border-red-700 transition-colors"
             title="Lock Session / Sign Out"
@@ -426,6 +428,7 @@ export default function ErpNavbar() {
           return (
             <button
               key={tab.id}
+              data-testid={`erp-tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap relative flex-shrink-0 ${getTabStyles()}`}
             >

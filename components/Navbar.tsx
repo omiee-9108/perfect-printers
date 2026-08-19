@@ -128,6 +128,7 @@ export default function Navbar({ onOpenQuote }: NavbarProps) {
             {/* ERP Portal Link */}
             <Link
               href="/erp"
+              data-testid="nav-erp-portal-link"
               className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-emerald-300 bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 rounded-lg shadow-sm transition-all hover:scale-105"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

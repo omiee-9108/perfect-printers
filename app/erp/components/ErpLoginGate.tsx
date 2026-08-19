@@ -236,6 +236,7 @@ export default function ErpLoginGate() {
                     <input
                       type="text"
                       required
+                      data-testid="erp-login-username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="e.g. admin_om or om@perfectprinters.com"
@@ -255,6 +256,7 @@ export default function ErpLoginGate() {
                     <input
                       type={showPassword ? "text" : "password"}
                       required
+                      data-testid="erp-login-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter password (e.g. perfect123)"
@@ -287,6 +289,7 @@ export default function ErpLoginGate() {
 
                 <button
                   type="submit"
+                  data-testid="erp-login-submit"
                   disabled={isLoading}
                   className="w-full py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
                 >
