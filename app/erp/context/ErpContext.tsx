@@ -127,6 +127,7 @@ interface ErpContextType {
   updateExpenses: (exp: MonthlyExpenses) => void;
 
   // Notifications
+  addNotification: (notif: { title: string; message: string; type?: "info" | "warning" | "success" | "critical"; orderId?: string }) => void;
   markNotificationAsRead: (id: string) => void;
   clearAllNotifications: () => void;
 
@@ -413,6 +414,82 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const triggerNotification = (notif: {
+    title: string;
+    message: string;
+    type?: "info" | "warning" | "success" | "critical";
+    orderId?: string;
+  }) => {
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      title: notif.title,
+      message: notif.message,
+      timestamp: "Just now",
+      type: notif.type || "info",
+      isRead: false,
+      orderId: notif.orderId,
+    };
+    setNotifications((prev) => {
+      const updated = [newNotif, ...prev.slice(0, 49)];
+      saveToStorage("pp_erp_notifications", updated);
+      return updated;
+    });
+  };
+
+  const addNotification = (notif: {
+    title: string;
+    message: string;
+    type?: "info" | "warning" | "success" | "critical";
+    orderId?: string;
+  }) => {
+    triggerNotification(notif);
+  };
+
+  // Simulated Shop-Floor Live Telemetry & Event Notifications
+  useEffect(() => {
+    const floorSimulationEvents = [
+      {
+        title: "⚡ Offset Press Heidelberg SM 102",
+        message: "Impression counter crossed 18,000 sheets on Shift A run. Speed: 9,200 SPH.",
+        type: "info" as const,
+      },
+      {
+        title: "✨ Quality Lab Inspection Approved",
+        message: "Delta-E color variation < 1.2 on Sun Pharma 500mg Batch #2026-B4.",
+        type: "success" as const,
+      },
+      {
+        title: "🌡️ Thermal CTP Unit 1 Calibrated",
+        message: "2400 DPI laser beam calibration complete. 8 CTP plates queued.",
+        type: "info" as const,
+      },
+      {
+        title: "📦 Automated Stock Audit",
+        message: "Real-time raw material consumption synced with active press jobs.",
+        type: "info" as const,
+      },
+      {
+        title: "✂️ Bobst Die-Cutter Setup Ready",
+        message: "Die punching makeready approved for 8-up pharma carton layout.",
+        type: "success" as const,
+      },
+      {
+        title: "🛡️ Shift Inspection Telemetry",
+        message: "Zero register drift detected on 5-color offset run (Job JC-01).",
+        type: "info" as const,
+      },
+    ];
+
+    let eventIdx = 0;
+    const interval = setInterval(() => {
+      const event = floorSimulationEvents[eventIdx % floorSimulationEvents.length];
+      eventIdx++;
+      triggerNotification(event);
+    }, 35000); // Trigger live update every 35 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Helper stage progression %
   const getStageProgress = (stage: StageStatus): number => {
     switch (stage) {
@@ -498,37 +575,33 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
     };
     setAuditLogs((prev) => [newLog, ...prev]);
 
-    // Notification
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      title: `New Order: ${newId}`,
-      message: `${cust.companyName} - ${j.jobCode} (${data.quantity.toLocaleString()} pcs)`,
-      timestamp: "Just now",
-      type: "info",
-      isRead: false,
+    // Automated Real-Time Notification
+    triggerNotification({
+      title: `New Order Booked: ${newId}`,
+      message: `${cust.companyName} • ${j.jobCode} (${data.quantity.toLocaleString()} pcs)`,
+      type: "success",
       orderId: newId,
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
+    });
 
     return newOrder;
   };
 
   const advanceOrderStage = (orderId: string, nextStage: StageStatus, operatorName?: string, notes?: string) => {
-    const updated = orders.map((ord) => {
-      if (ord.id === orderId) {
+    const ord = orders.find((o) => o.id === orderId);
+    const updated = orders.map((o) => {
+      if (o.id === orderId) {
         return {
-          ...ord,
+          ...o,
           status: nextStage,
           progressPercent: getStageProgress(nextStage),
-          assignedOperator: operatorName || ord.assignedOperator || currentUser.name,
+          assignedOperator: operatorName || o.assignedOperator || currentUser.name,
         };
       }
-      return ord;
+      return o;
     });
     setOrders(updated);
     saveToStorage("pp_erp_orders", updated);
 
-    const ord = orders.find((o) => o.id === orderId);
     if (ord) {
       const newLog: ProductionAuditLog = {
         id: `log-${Date.now()}`,
@@ -541,61 +614,94 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
         notes: notes || `Stage advanced to ${nextStage} by ${operatorName || currentUser.name}`,
       };
       setAuditLogs((prev) => [newLog, ...prev]);
+
+      // Automated Notification
+      triggerNotification({
+        title: `Floor Progress: ${ord.jobCode}`,
+        message: `Advanced to "${nextStage}" stage by ${operatorName || currentUser.name}`,
+        type: nextStage === "Completed" || nextStage === "Dispatch" ? "success" : "info",
+        orderId,
+      });
     }
   };
 
   const setOrderOnHold = (orderId: string, reason: string) => {
-    const updated = orders.map((ord) => {
-      if (ord.id === orderId) {
+    const ord = orders.find((o) => o.id === orderId);
+    const updated = orders.map((o) => {
+      if (o.id === orderId) {
         return {
-          ...ord,
+          ...o,
           status: "On Hold" as StageStatus,
           holdReason: reason,
         };
       }
-      return ord;
+      return o;
     });
     setOrders(updated);
     saveToStorage("pp_erp_orders", updated);
+
+    triggerNotification({
+      title: `⚠️ Order Placed On Hold`,
+      message: `Job ${ord?.jobCode || orderId} paused. Reason: ${reason}`,
+      type: "warning",
+      orderId,
+    });
   };
 
   const cancelOrder = (orderId: string, reason: string) => {
-    const updated = orders.map((ord) => {
-      if (ord.id === orderId) {
+    const ord = orders.find((o) => o.id === orderId);
+    const updated = orders.map((o) => {
+      if (o.id === orderId) {
         return {
-          ...ord,
+          ...o,
           status: "Cancelled" as StageStatus,
           cancelReason: reason,
         };
       }
-      return ord;
+      return o;
     });
     setOrders(updated);
     saveToStorage("pp_erp_orders", updated);
+
+    triggerNotification({
+      title: `❌ Order Cancelled`,
+      message: `Job ${ord?.jobCode || orderId} cancelled. Reason: ${reason}`,
+      type: "critical",
+      orderId,
+    });
   };
 
   const restoreOrder = (orderId: string) => {
-    const updated = orders.map((ord) => {
-      if (ord.id === orderId) {
+    const ord = orders.find((o) => o.id === orderId);
+    const updated = orders.map((o) => {
+      if (o.id === orderId) {
         return {
-          ...ord,
+          ...o,
           status: "Pending" as StageStatus,
           progressPercent: 10,
           holdReason: undefined,
           cancelReason: undefined,
         };
       }
-      return ord;
+      return o;
     });
     setOrders(updated);
     saveToStorage("pp_erp_orders", updated);
+
+    triggerNotification({
+      title: `🔄 Order Restored`,
+      message: `Job ${ord?.jobCode || orderId} restored to Active Pending status.`,
+      type: "info",
+      orderId,
+    });
   };
 
   const dispatchOrder = (orderId: string, challanNo: string, invoiceNo?: string) => {
-    const updated = orders.map((ord) => {
-      if (ord.id === orderId) {
+    const ord = orders.find((o) => o.id === orderId);
+    const updated = orders.map((o) => {
+      if (o.id === orderId) {
         return {
-          ...ord,
+          ...o,
           status: "Completed" as StageStatus,
           progressPercent: 100,
           challanNo,
@@ -603,10 +709,17 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
           dispatchDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
         };
       }
-      return ord;
+      return o;
     });
     setOrders(updated);
     saveToStorage("pp_erp_orders", updated);
+
+    triggerNotification({
+      title: `🚚 Order Dispatched: ${ord?.jobCode || orderId}`,
+      message: `Challan #${challanNo} generated. Shipped from Plant Unit 1.`,
+      type: "success",
+      orderId,
+    });
   };
 
   // Master Data CRUD
@@ -763,6 +876,12 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
       notes,
     };
     setTransactions((prev) => [tx, ...prev]);
+
+    triggerNotification({
+      title: `📦 Stock In: ${item.name}`,
+      message: `+${qty} ${item.unit} received (${poRef || "Direct"}). New Level: ${newQty} ${item.unit}`,
+      type: "info",
+    });
   };
 
   const stockOutItem = (itemId: string, qty: number, jobCode: string, orderId: string, notes?: string) => {
@@ -798,6 +917,20 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
       notes,
     };
     setTransactions((prev) => [tx, ...prev]);
+
+    triggerNotification({
+      title: `📦 Material Issued: ${item.name}`,
+      message: `-${qty} ${item.unit} issued for Job ${jobCode || "Floor"}. Remaining: ${newQty} ${item.unit}`,
+      type: "info",
+    });
+
+    if (newQty <= item.reorderLevel) {
+      triggerNotification({
+        title: `🚨 LOW STOCK ALERT: ${item.name}`,
+        message: `Inventory (${newQty} ${item.unit}) reached reorder threshold (${item.reorderLevel} ${item.unit})!`,
+        type: "critical",
+      });
+    }
   };
 
   const deleteInventoryItem = (id: string) => {
@@ -813,11 +946,28 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
       ...poData,
     };
     setPurchaseOrders((prev) => [newPO, ...prev]);
+
+    triggerNotification({
+      title: `🛒 PO Generated: ${newPO.poNumber}`,
+      message: `${newPO.supplierName} • ₹${newPO.grandTotal.toLocaleString()}`,
+      type: "info",
+    });
     return newPO;
   };
 
   const updatePurchaseOrderStatus = (id: string, status: PurchaseOrder["status"]) => {
-    setPurchaseOrders((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+    setPurchaseOrders((prev) => {
+      const updated = prev.map((p) => (p.id === id ? { ...p, status } : p));
+      const target = updated.find((p) => p.id === id);
+      if (target) {
+        triggerNotification({
+          title: `🛒 PO Status: ${target.poNumber}`,
+          message: `Status updated to "${status}"`,
+          type: status === "Received" ? "success" : "info",
+        });
+      }
+      return updated;
+    });
   };
 
   const createQuotation = (quoteData: Omit<Quotation, "id">): Quotation => {
@@ -826,11 +976,28 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
       ...quoteData,
     };
     setQuotations((prev) => [newQuote, ...prev]);
+
+    triggerNotification({
+      title: `📄 Quotation Issued: ${newQuote.quoteNumber}`,
+      message: `${newQuote.customerName} • ₹${newQuote.grandTotal.toLocaleString()}`,
+      type: "info",
+    });
     return newQuote;
   };
 
   const updateQuotationStatus = (id: string, status: Quotation["status"]) => {
-    setQuotations((prev) => prev.map((q) => (q.id === id ? { ...q, status } : q)));
+    setQuotations((prev) => {
+      const updated = prev.map((q) => (q.id === id ? { ...q, status } : q));
+      const target = updated.find((q) => q.id === id);
+      if (target) {
+        triggerNotification({
+          title: `📄 Quote Status: ${target.quoteNumber}`,
+          message: `Status updated to "${status}"`,
+          type: status === "Accepted" ? "success" : "info",
+        });
+      }
+      return updated;
+    });
   };
 
   const updateExpenses = (exp: MonthlyExpenses) => {
@@ -838,11 +1005,19 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
   };
 
   const markNotificationAsRead = (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+      saveToStorage("pp_erp_notifications", updated);
+      return updated;
+    });
   };
 
   const clearAllNotifications = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, isRead: true }));
+      saveToStorage("pp_erp_notifications", updated);
+      return updated;
+    });
   };
 
   const openPrintModal = (type: "challan" | "po" | "quote" | "jobcard", data: any) => {
@@ -873,6 +1048,7 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
         quotations,
         expenses,
         notifications,
+        addNotification,
         auditLogs,
         createOrder,
         advanceOrderStage,

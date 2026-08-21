@@ -257,7 +257,7 @@ export interface NotificationItem {
   title: string;
   message: string;
   timestamp: string;
-  type: "info" | "warning" | "success" | "alert";
+  type: "info" | "warning" | "success" | "alert" | "critical";
   isRead: boolean;
   orderId?: string;
 }

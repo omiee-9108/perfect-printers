@@ -33,6 +33,7 @@ export default function ErpNavbar() {
     currentUser,
     setCurrentUserRole,
     notifications,
+    addNotification,
     markNotificationAsRead,
     clearAllNotifications,
     orders,
@@ -124,56 +125,120 @@ export default function ErpNavbar() {
             <button
               onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
               className="relative p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-colors"
-              title="Notifications"
+              title="Real-Time Floor Notifications"
             >
               <Bell className="w-4 h-4" />
               {unreadNotifs.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
-                  {unreadNotifs.length}
-                </span>
+                <>
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse shadow-lg shadow-red-500/50">
+                    {unreadNotifs.length}
+                  </span>
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-400 animate-ping opacity-75" />
+                </>
               )}
             </button>
 
-            {/* Notification Dropdown */}
+            {/* Notification Dropdown Tray */}
             {notifDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-700 z-50 overflow-hidden animate-fadeIn">
+              <div className="absolute right-0 mt-2 w-80 sm:w-[420px] bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-700 z-50 overflow-hidden animate-fadeIn">
+                {/* Header */}
                 <div className="p-3.5 bg-slate-950 border-b border-slate-800 text-white flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-cyan-400" />
-                    <span className="text-xs font-bold font-mono uppercase tracking-wider">
-                      Floor Alerts & Logs ({unreadNotifs.length} unread)
+                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                    <span className="text-xs font-bold font-mono uppercase tracking-wider text-cyan-300">
+                      Live Press Alerts ({unreadNotifs.length} unread)
                     </span>
                   </div>
-                  {unreadNotifs.length > 0 && (
-                    <button
-                      onClick={clearAllNotifications}
-                      className="text-[11px] text-cyan-400 hover:text-cyan-300 underline font-medium"
-                    >
-                      Mark all read
-                    </button>
+                  <div className="flex items-center gap-2">
+                    {unreadNotifs.length > 0 && (
+                      <button
+                        onClick={clearAllNotifications}
+                        className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 underline font-semibold"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Notifications List */}
+                <div className="max-h-80 overflow-y-auto divide-y divide-slate-800/80">
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-slate-500 font-mono">
+                      No notifications recorded yet.
+                    </div>
+                  ) : (
+                    notifications.map((n) => {
+                      const isUnread = !n.isRead;
+                      const typeStyles =
+                        n.type === "critical"
+                          ? "border-l-4 border-l-red-500 bg-red-950/20"
+                          : n.type === "warning"
+                          ? "border-l-4 border-l-amber-500 bg-amber-950/20"
+                          : n.type === "success"
+                          ? "border-l-4 border-l-emerald-500 bg-emerald-950/20"
+                          : "border-l-4 border-l-cyan-500 bg-slate-950/30";
+
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            markNotificationAsRead(n.id);
+                            if (n.orderId) {
+                              setActiveTab("job-order");
+                              setNotifDropdownOpen(false);
+                            }
+                          }}
+                          className={`p-3.5 text-xs transition-all cursor-pointer hover:bg-slate-800/80 ${typeStyles} ${
+                            isUnread ? "font-semibold" : "opacity-75"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-1.5">
+                              {isUnread && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0 animate-pulse" />
+                              )}
+                              <span className={`text-[11px] font-bold ${isUnread ? "text-white" : "text-slate-300"}`}>
+                                {n.title}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-mono flex-shrink-0">
+                              {n.timestamp}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 leading-snug pl-3">
+                            {n.message}
+                          </p>
+                          {n.orderId && (
+                            <div className="pl-3 mt-1.5 flex items-center gap-1 text-[10px] font-mono text-cyan-400">
+                              <span>Click to view order</span>
+                              <span>→</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
 
-                <div className="max-h-72 overflow-y-auto divide-y divide-slate-800">
-                  {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-slate-500">No notifications</div>
-                  ) : (
-                    notifications.map((n) => (
-                      <div
-                        key={n.id}
-                        onClick={() => markNotificationAsRead(n.id)}
-                        className={`p-3 text-xs transition-colors cursor-pointer hover:bg-slate-800 ${
-                          !n.isRead ? "bg-slate-800/60 font-semibold" : "text-slate-400"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[11px] font-bold text-slate-100">{n.title}</span>
-                          <span className="text-[10px] text-slate-500 font-mono">{n.timestamp}</span>
-                        </div>
-                        <p className="text-xs text-slate-300 leading-snug">{n.message}</p>
-                      </div>
-                    ))
-                  )}
+                {/* Footer simulation / status ticker */}
+                <div className="p-2.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                  <span className="flex items-center gap-1.5 text-emerald-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Real-Time Stream Active</span>
+                  </span>
+                  <button
+                    onClick={() => {
+                      addNotification({
+                        title: "⚡ Manual Shop-Floor Ping",
+                        message: `Telemetry heartbeat triggered at ${new Date().toLocaleTimeString()} by ${currentUser.name}`,
+                        type: "info",
+                      });
+                    }}
+                    className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700"
+                  >
+                    + Ping Test Alert
+                  </button>
                 </div>
               </div>
             )}
