@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { ArrowRight, Award, CheckCircle2, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Award, CheckCircle2, ChevronRight, Layers } from "lucide-react";
 import InteractivePrintSimulator from "./InteractivePrintSimulator";
 
 interface HeroProps {
@@ -23,11 +24,17 @@ export default function Hero({ onOpenQuote }: HeroProps) {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-cyan)] opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent-cyan)]" />
             </span>
-            <span className="text-[var(--text-main)] font-bold tracking-wider">COMMERCIAL OFFSET PRESS FACILITY</span>
+            <span className="text-[var(--text-main)] font-bold tracking-wider">COMMERCIAL OFFSET PRESS & PACKAGING MES</span>
           </div>
           <div className="hidden sm:flex items-center gap-4 font-medium">
             <span>LOCATION: MIRAJ MIDC INDUSTRIAL AREA</span>
-            <span>PIN: 416410</span>
+            <Link
+              href="/erp"
+              className="text-cyan-400 hover:text-white font-bold flex items-center gap-1 transition-colors"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span>LIVE ERP CONNECTED</span>
+            </Link>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 bg-[var(--accent-cyan)]" />
@@ -68,10 +75,10 @@ export default function Hero({ onOpenQuote }: HeroProps) {
             </p>
 
             {/* CTA Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto mb-10">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 w-full sm:w-auto mb-10">
               <button
                 onClick={onOpenQuote}
-                className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-sm font-bold shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="group relative inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl text-sm font-bold shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
                 style={{
                   background: `linear-gradient(to right, var(--gradient-btn-from), var(--gradient-btn-to))`,
                   color: "var(--btn-text-color)",
@@ -81,11 +88,19 @@ export default function Hero({ onOpenQuote }: HeroProps) {
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
 
+              <Link
+                href="/erp"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold text-cyan-300 bg-slate-900 hover:bg-slate-800 border border-cyan-500/50 hover:border-cyan-400 transition-all backdrop-blur-md shadow-lg shadow-cyan-500/10 hover:scale-[1.02]"
+              >
+                <Layers className="w-4 h-4 text-cyan-400" />
+                <span>Launch ERP Portal</span>
+              </Link>
+
               <a
                 href="#services"
-                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-sm font-bold text-[var(--text-heading)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-card)] hover:border-[var(--accent-cyan)] transition-all backdrop-blur-md shadow-sm"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl text-sm font-bold text-[var(--text-heading)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-card)] hover:border-[var(--accent-cyan)] transition-all backdrop-blur-md shadow-sm"
               >
-                <span>Explore Our Services</span>
+                <span>Services</span>
                 <ChevronRight className="w-4 h-4 text-[var(--text-muted)]" />
               </a>
             </div>

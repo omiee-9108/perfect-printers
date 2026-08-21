@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import Logo from "./Logo";
 import OmTechLogo from "./OmTechLogo";
 import { COMPANY_INFO, SERVICES } from "@/data/content";
-import { MapPin } from "lucide-react";
+import { MapPin, Layers } from "lucide-react";
 
 interface FooterProps {
   onOpenQuote: () => void;
@@ -12,14 +13,15 @@ interface FooterProps {
 
 export default function Footer({ onOpenQuote }: FooterProps) {
   const quickLinks = [
-    { name: "Home", href: "#hero" },
-    { name: "About Us", href: "#about" },
-    { name: "Services", href: "#services" },
-    { name: "Why Perfect Printers", href: "#why-choose-us" },
-    { name: "Printing Process", href: "#process" },
-    { name: "Our Work", href: "#work" },
-    { name: "Quality Assurance", href: "#quality" },
-    { name: "Contact & Location", href: "#contact" },
+    { name: "Home", href: "#hero", isInternal: false },
+    { name: "About Us", href: "#about", isInternal: false },
+    { name: "Services", href: "#services", isInternal: false },
+    { name: "Why Perfect Printers", href: "#why-choose-us", isInternal: false },
+    { name: "Printing Process", href: "#process", isInternal: false },
+    { name: "Our Work", href: "#work", isInternal: false },
+    { name: "Quality Assurance", href: "#quality", isInternal: false },
+    { name: "Enterprise ERP Portal", href: "/erp", isInternal: true },
+    { name: "Contact & Location", href: "#contact", isInternal: false },
   ];
 
   return (
@@ -43,7 +45,7 @@ export default function Footer({ onOpenQuote }: FooterProps) {
               <span>20+ Years Industry Heritage • Miraj MIDC</span>
             </div>
 
-            <div className="pt-2 flex items-center gap-3">
+            <div className="pt-2 flex flex-wrap items-center gap-3">
               <button
                 onClick={onOpenQuote}
                 className="px-4 py-2 text-xs font-bold rounded-lg shadow-sm hover:opacity-90 transition-colors"
@@ -54,6 +56,15 @@ export default function Footer({ onOpenQuote }: FooterProps) {
               >
                 Get a Quote
               </button>
+              
+              <Link
+                href="/erp"
+                className="px-4 py-2 text-xs font-bold text-cyan-300 bg-slate-900 border border-slate-700 hover:border-cyan-500/60 rounded-lg transition-all shadow-sm flex items-center gap-1.5"
+              >
+                <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                <span>ERP Portal</span>
+              </Link>
+
               <a
                 href={`tel:${COMPANY_INFO.phoneClean}`}
                 className="px-4 py-2 text-xs font-bold text-[var(--text-heading)] bg-[var(--bg-card)] border border-[var(--border-card)] rounded-lg hover:border-[var(--accent-cyan)] transition-colors shadow-sm"
@@ -71,12 +82,21 @@ export default function Footer({ onOpenQuote }: FooterProps) {
             <ul className="space-y-2.5">
               {quickLinks.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-xs text-[var(--text-main)] hover:text-[var(--accent-cyan)] transition-colors flex items-center gap-1.5 font-medium"
-                  >
-                    <span className="text-[var(--text-muted)]">›</span> {link.name}
-                  </a>
+                  {link.isInternal ? (
+                    <Link
+                      href={link.href}
+                      className="text-xs text-cyan-400 hover:text-white transition-colors flex items-center gap-1.5 font-bold"
+                    >
+                      <span className="text-cyan-500">⚡</span> {link.name}
+                    </Link>
+                  ) : (
+                    <a
+                      href={link.href}
+                      className="text-xs text-[var(--text-main)] hover:text-[var(--accent-cyan)] transition-colors flex items-center gap-1.5 font-medium"
+                    >
+                      <span className="text-[var(--text-muted)]">›</span> {link.name}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

@@ -27,14 +27,15 @@ export default function Navbar({ onOpenQuote }: NavbarProps) {
   }, []);
 
   const navLinks = [
-    { name: "Home", href: "#hero" },
-    { name: "About Us", href: "#about" },
-    { name: "Services", href: "#services" },
-    { name: "Why Us", href: "#why-choose-us" },
-    { name: "Process", href: "#process" },
-    { name: "Our Work", href: "#work" },
-    { name: "Quality", href: "#quality" },
-    { name: "Contact", href: "#contact" },
+    { name: "Home", href: "#hero", isInternal: false },
+    { name: "About Us", href: "#about", isInternal: false },
+    { name: "Services", href: "#services", isInternal: false },
+    { name: "Why Us", href: "#why-choose-us", isInternal: false },
+    { name: "Process", href: "#process", isInternal: false },
+    { name: "Our Work", href: "#work", isInternal: false },
+    { name: "Quality", href: "#quality", isInternal: false },
+    { name: "Contact", href: "#contact", isInternal: false },
+    { name: "ERP Portal", href: "/erp", isInternal: true },
   ];
 
   return (
@@ -54,15 +55,26 @@ export default function Navbar({ onOpenQuote }: NavbarProps) {
 
           {/* Desktop Navigation Links */}
           <nav className="hidden lg:flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-card)] rounded-full px-4 py-1.5 backdrop-blur-md shadow-sm">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className="text-xs font-semibold text-[var(--text-main)] hover:text-[var(--accent-cyan)] px-3 py-1.5 rounded-full transition-colors hover:bg-[var(--bg-surface-2)]"
-              >
-                {link.name}
-              </a>
-            ))}
+            {navLinks.map((link) =>
+              link.isInternal ? (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  className="text-xs font-bold text-cyan-300 hover:text-white px-3 py-1.5 rounded-full transition-colors hover:bg-cyan-950/80 border border-cyan-500/30 flex items-center gap-1"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span>{link.name}</span>
+                </Link>
+              ) : (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  className="text-xs font-semibold text-[var(--text-main)] hover:text-[var(--accent-cyan)] px-3 py-1.5 rounded-full transition-colors hover:bg-[var(--bg-surface-2)]"
+                >
+                  {link.name}
+                </a>
+              )
+            )}
           </nav>
 
           {/* Right Action Buttons */}
@@ -76,11 +88,11 @@ export default function Navbar({ onOpenQuote }: NavbarProps) {
               <span className="font-semibold">{COMPANY_INFO.phone}</span>
             </a>
 
-            {/* ERP Portal Link */}
+            {/* ERP Portal Link Button */}
             <Link
               href="/erp"
               data-testid="nav-erp-portal-link"
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-cyan-300 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 rounded-lg shadow-sm transition-all hover:scale-105"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-cyan-300 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/70 rounded-lg shadow-sm transition-all hover:scale-105"
             >
               <Layers className="w-3.5 h-3.5 text-cyan-400" />
               <span>ERP Portal</span>
@@ -104,9 +116,10 @@ export default function Navbar({ onOpenQuote }: NavbarProps) {
           <div className="flex md:hidden items-center gap-2">
             <Link
               href="/erp"
-              className="px-2.5 py-1.5 text-xs font-bold rounded-md bg-slate-900 text-cyan-300 border border-slate-700 shadow-sm"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-md bg-slate-900 text-cyan-300 border border-slate-700 shadow-sm"
             >
-              ERP
+              <Layers className="w-3 h-3 text-cyan-400" />
+              <span>ERP</span>
             </Link>
             <button
               onClick={onOpenQuote}
@@ -133,18 +146,44 @@ export default function Navbar({ onOpenQuote }: NavbarProps) {
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-x-0 top-full bg-[var(--bg-card)] border-b border-[var(--border-card)] backdrop-blur-xl px-6 py-6 shadow-2xl transition-all">
           <div className="flex flex-col gap-3">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-sm font-medium text-[var(--text-main)] hover:text-[var(--accent-cyan)] py-2 border-b border-[var(--border-color)]"
-              >
-                {link.name}
-              </a>
-            ))}
+            {navLinks.map((link) =>
+              link.isInternal ? (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-sm font-bold text-cyan-300 hover:text-white py-2 border-b border-[var(--border-color)] flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                    <span>{link.name}</span>
+                  </div>
+                  <span className="text-[10px] font-mono bg-cyan-950 text-cyan-400 border border-cyan-700 px-2 py-0.5 rounded">
+                    OPEN
+                  </span>
+                </Link>
+              ) : (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-sm font-medium text-[var(--text-main)] hover:text-[var(--accent-cyan)] py-2 border-b border-[var(--border-color)]"
+                >
+                  {link.name}
+                </a>
+              )
+            )}
 
             <div className="pt-4 flex flex-col gap-3">
+              <Link
+                href="/erp"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 w-full py-3 text-sm font-bold rounded-xl bg-slate-900 border border-cyan-500/50 text-cyan-300 shadow-lg shadow-cyan-500/10"
+              >
+                <Layers className="w-4 h-4 text-cyan-400" />
+                <span>Launch Enterprise ERP Portal</span>
+              </Link>
+
               <a
                 href={`tel:${COMPANY_INFO.phoneClean}`}
                 className="flex items-center justify-center gap-2 w-full py-3 text-sm font-medium text-[var(--text-heading)] bg-[var(--bg-surface-1)] border border-[var(--border-card)] rounded-xl"
@@ -152,15 +191,6 @@ export default function Navbar({ onOpenQuote }: NavbarProps) {
                 <Phone className="w-4 h-4 text-[var(--accent-cyan)]" />
                 <span>Call {COMPANY_INFO.phone}</span>
               </a>
-
-              <Link
-                href="/erp"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold rounded-xl bg-slate-900 border border-slate-700 text-cyan-300"
-              >
-                <Layers className="w-4 h-4 text-cyan-400" />
-                <span>Open Enterprise ERP Portal</span>
-              </Link>
 
               <button
                 onClick={() => {
