@@ -3,11 +3,8 @@
 import React, { useState } from "react";
 import { Navigation, ExternalLink, MapPin, Copy, Check } from "lucide-react";
 import { COMPANY_INFO } from "@/data/content";
-import { useTheme } from "@/context/ThemeContext";
 
 export default function MapSection() {
-  const { currentTheme } = useTheme();
-  const isLight = currentTheme === "clean-white";
   const [copied, setCopied] = useState(false);
 
   const handleCopyAddress = () => {
@@ -83,9 +80,7 @@ export default function MapSection() {
               height="100%"
               style={{
                 border: 0,
-                filter: isLight
-                  ? "contrast(1.05) brightness(1)"
-                  : "invert(90%) hue-rotate(180deg) contrast(1.1) brightness(0.9)",
+                filter: "invert(90%) hue-rotate(180deg) contrast(1.1) brightness(0.9)",
               }}
               allowFullScreen={true}
               loading="lazy"

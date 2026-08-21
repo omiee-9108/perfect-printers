@@ -17,8 +17,6 @@ import ContactSection from "@/components/ContactSection";
 import MapSection from "@/components/MapSection";
 import Footer from "@/components/Footer";
 import QuoteModal from "@/components/QuoteModal";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
-import { ThemeProvider } from "@/context/ThemeContext";
 
 export default function HomePage() {
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
@@ -39,63 +37,58 @@ export default function HomePage() {
   };
 
   return (
-    <ThemeProvider>
-      <main className="min-h-screen text-slate-100 flex flex-col selection:bg-cyan-400 selection:text-black">
-        {/* Sticky Header */}
-        <Navbar onOpenQuote={() => handleOpenQuote()} />
+    <main className="min-h-screen text-slate-100 flex flex-col selection:bg-cyan-400 selection:text-black">
+      {/* Sticky Header */}
+      <Navbar onOpenQuote={() => handleOpenQuote()} />
 
-        {/* Hero Section */}
-        <Hero onOpenQuote={() => handleOpenQuote()} />
+      {/* Hero Section */}
+      <Hero onOpenQuote={() => handleOpenQuote()} />
 
-        {/* Trust & Stats Section */}
-        <StatsStrip />
+      {/* Trust & Stats Section */}
+      <StatsStrip />
 
-        {/* About Perfect Printers */}
-        <AboutSection onOpenQuote={() => handleOpenQuote()} />
+      {/* About Perfect Printers */}
+      <AboutSection onOpenQuote={() => handleOpenQuote()} />
 
-        {/* Services & Core Capabilities */}
-        <ServicesSection onOpenQuote={(name) => handleOpenQuote(name)} />
+      {/* Services & Core Capabilities */}
+      <ServicesSection onOpenQuote={(name) => handleOpenQuote(name)} />
 
-        {/* Why Businesses Choose Perfect Printers */}
-        <WhyChooseUs />
+      {/* Why Businesses Choose Perfect Printers */}
+      <WhyChooseUs />
 
-        {/* Printing Process Timeline */}
-        <ProcessTimeline />
+      {/* Printing Process Timeline */}
+      <ProcessTimeline />
 
-        {/* Work Gallery & Portfolios */}
-        <WorkGallery onOpenQuote={() => handleOpenQuote()} />
+      {/* Work Gallery & Portfolios */}
+      <WorkGallery onOpenQuote={() => handleOpenQuote()} />
 
-        {/* Quality & Precision Section */}
-        <QualitySection />
+      {/* Quality & Precision Section */}
+      <QualitySection />
 
-        {/* Google Ratings & Business Trust */}
-        <ReviewsSection />
+      {/* Google Ratings & Business Trust */}
+      <ReviewsSection />
 
-        {/* Interactive Project Configurator / Calculator */}
-        <QuoteCalculator onApplyToForm={handleApplyToForm} />
+      {/* Interactive Project Configurator / Calculator */}
+      <QuoteCalculator onApplyToForm={handleApplyToForm} />
 
-        {/* Conversion CTA Banner */}
-        <CtaBanner onOpenQuote={() => handleOpenQuote()} />
+      {/* Conversion CTA Banner */}
+      <CtaBanner onOpenQuote={() => handleOpenQuote()} />
 
-        {/* Contact & Request a Quote Form */}
-        <ContactSection prefillData={contactPrefill} />
+      {/* Contact & Request a Quote Form */}
+      <ContactSection prefillData={contactPrefill} />
 
-        {/* Google Maps Location Container */}
-        <MapSection />
+      {/* Google Maps Location Container */}
+      <MapSection />
 
-        {/* Footer */}
-        <Footer onOpenQuote={() => handleOpenQuote()} />
+      {/* Footer */}
+      <Footer onOpenQuote={() => handleOpenQuote()} />
 
-        {/* Global Quote Request Modal */}
-        <QuoteModal
-          isOpen={quoteModalOpen}
-          onClose={() => setQuoteModalOpen(false)}
-          defaultService={selectedModalService}
-        />
-
-        {/* Live Theme Switcher Floating Widget */}
-        <ThemeSwitcher />
-      </main>
-    </ThemeProvider>
+      {/* Global Quote Request Modal */}
+      <QuoteModal
+        isOpen={quoteModalOpen}
+        onClose={() => setQuoteModalOpen(false)}
+        defaultService={selectedModalService}
+      />
+    </main>
   );
 }

@@ -271,12 +271,12 @@ export default function ErpLoginGate() {
                       type="checkbox"
                       checked={rememberTerminal}
                       onChange={(e) => setRememberTerminal(e.target.checked)}
-                      className="rounded bg-slate-900 border-slate-700 text-emerald-600 focus:ring-0"
+                      className="rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-0"
                     />
                     <span>Remember terminal session</span>
                   </label>
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    Default PIN: <strong className="text-emerald-400">1234</strong>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    Default PIN: <strong className="text-cyan-400">1234</strong>
                   </span>
                 </div>
 
@@ -284,7 +284,7 @@ export default function ErpLoginGate() {
                   type="submit"
                   data-testid="erp-login-submit"
                   disabled={isLoading}
-                  className="w-full py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
                 >
                   {isLoading ? (
                     <span>Verifying Credentials...</span>
