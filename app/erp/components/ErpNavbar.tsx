@@ -24,6 +24,7 @@ import {
   Home,
   Check,
   Shield,
+  X,
 } from "lucide-react";
 
 export default function ErpNavbar() {
@@ -34,6 +35,7 @@ export default function ErpNavbar() {
     setCurrentUserRole,
     notifications,
     addNotification,
+    deleteNotification,
     markNotificationAsRead,
     clearAllNotifications,
     orders,
@@ -125,12 +127,12 @@ export default function ErpNavbar() {
             <button
               onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
               className="relative p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-colors"
-              title="Real-Time Floor Notifications"
+              title="Admin Priority Alerts"
             >
               <Bell className="w-4 h-4" />
               {unreadNotifs.length > 0 && (
                 <>
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse shadow-lg shadow-red-500/50">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-lg shadow-red-500/50">
                     {unreadNotifs.length}
                   </span>
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-400 animate-ping opacity-75" />
@@ -144,9 +146,9 @@ export default function ErpNavbar() {
                 {/* Header */}
                 <div className="p-3.5 bg-slate-950 border-b border-slate-800 text-white flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                    <Shield className="w-4 h-4 text-cyan-400" />
                     <span className="text-xs font-bold font-mono uppercase tracking-wider text-cyan-300">
-                      Live Press Alerts ({unreadNotifs.length} unread)
+                      Admin Priority Alerts ({unreadNotifs.length} unread)
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -165,7 +167,7 @@ export default function ErpNavbar() {
                 <div className="max-h-80 overflow-y-auto divide-y divide-slate-800/80">
                   {notifications.length === 0 ? (
                     <div className="p-8 text-center text-xs text-slate-500 font-mono">
-                      No notifications recorded yet.
+                      No active alerts. All priority operations healthy.
                     </div>
                   ) : (
                     notifications.map((n) => {
@@ -182,19 +184,21 @@ export default function ErpNavbar() {
                       return (
                         <div
                           key={n.id}
-                          onClick={() => {
-                            markNotificationAsRead(n.id);
-                            if (n.orderId) {
-                              setActiveTab("job-order");
-                              setNotifDropdownOpen(false);
-                            }
-                          }}
-                          className={`p-3.5 text-xs transition-all cursor-pointer hover:bg-slate-800/80 ${typeStyles} ${
+                          className={`p-3.5 text-xs transition-all hover:bg-slate-800/80 ${typeStyles} ${
                             isUnread ? "font-semibold" : "opacity-75"
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2 mb-1">
-                            <div className="flex items-center gap-1.5">
+                            <div
+                              onClick={() => {
+                                markNotificationAsRead(n.id);
+                                if (n.orderId) {
+                                  setActiveTab("job-order");
+                                  setNotifDropdownOpen(false);
+                                }
+                              }}
+                              className="flex items-center gap-1.5 cursor-pointer flex-1"
+                            >
                               {isUnread && (
                                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0 animate-pulse" />
                               )}
@@ -202,16 +206,47 @@ export default function ErpNavbar() {
                                 {n.title}
                               </span>
                             </div>
-                            <span className="text-[10px] text-slate-500 font-mono flex-shrink-0">
-                              {n.timestamp}
-                            </span>
+
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                {n.timestamp}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(n.id);
+                                }}
+                                title="Dismiss Alert"
+                                className="text-slate-500 hover:text-red-400 p-0.5 transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <p className="text-[11px] text-slate-400 leading-snug pl-3">
+
+                          <p
+                            onClick={() => {
+                              markNotificationAsRead(n.id);
+                              if (n.orderId) {
+                                setActiveTab("job-order");
+                                setNotifDropdownOpen(false);
+                              }
+                            }}
+                            className="text-[11px] text-slate-400 leading-snug pl-3 cursor-pointer"
+                          >
                             {n.message}
                           </p>
+
                           {n.orderId && (
-                            <div className="pl-3 mt-1.5 flex items-center gap-1 text-[10px] font-mono text-cyan-400">
-                              <span>Click to view order</span>
+                            <div
+                              onClick={() => {
+                                markNotificationAsRead(n.id);
+                                setActiveTab("job-order");
+                                setNotifDropdownOpen(false);
+                              }}
+                              className="pl-3 mt-1.5 flex items-center gap-1 text-[10px] font-mono text-cyan-400 cursor-pointer hover:underline"
+                            >
+                              <span>Click to inspect order</span>
                               <span>→</span>
                             </div>
                           )}
@@ -221,24 +256,13 @@ export default function ErpNavbar() {
                   )}
                 </div>
 
-                {/* Footer simulation / status ticker */}
+                {/* Clean Footer Status */}
                 <div className="p-2.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[10px] font-mono text-slate-400">
                   <span className="flex items-center gap-1.5 text-emerald-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Real-Time Stream Active</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>Filtering: Important Admin Alerts Only</span>
                   </span>
-                  <button
-                    onClick={() => {
-                      addNotification({
-                        title: "⚡ Manual Shop-Floor Ping",
-                        message: `Telemetry heartbeat triggered at ${new Date().toLocaleTimeString()} by ${currentUser.name}`,
-                        type: "info",
-                      });
-                    }}
-                    className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700"
-                  >
-                    + Ping Test Alert
-                  </button>
+                  <span>{notifications.length} Total</span>
                 </div>
               </div>
             )}

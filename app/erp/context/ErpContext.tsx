@@ -129,6 +129,7 @@ interface ErpContextType {
   // Notifications
   addNotification: (notif: { title: string; message: string; type?: "info" | "warning" | "success" | "critical"; orderId?: string }) => void;
   markNotificationAsRead: (id: string) => void;
+  deleteNotification: (id: string) => void;
   clearAllNotifications: () => void;
 
   // Authentication & Security Gate
@@ -445,51 +446,6 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
     triggerNotification(notif);
   };
 
-  // Simulated Shop-Floor Live Telemetry & Event Notifications
-  useEffect(() => {
-    const floorSimulationEvents = [
-      {
-        title: "⚡ Offset Press Heidelberg SM 102",
-        message: "Impression counter crossed 18,000 sheets on Shift A run. Speed: 9,200 SPH.",
-        type: "info" as const,
-      },
-      {
-        title: "✨ Quality Lab Inspection Approved",
-        message: "Delta-E color variation < 1.2 on Sun Pharma 500mg Batch #2026-B4.",
-        type: "success" as const,
-      },
-      {
-        title: "🌡️ Thermal CTP Unit 1 Calibrated",
-        message: "2400 DPI laser beam calibration complete. 8 CTP plates queued.",
-        type: "info" as const,
-      },
-      {
-        title: "📦 Automated Stock Audit",
-        message: "Real-time raw material consumption synced with active press jobs.",
-        type: "info" as const,
-      },
-      {
-        title: "✂️ Bobst Die-Cutter Setup Ready",
-        message: "Die punching makeready approved for 8-up pharma carton layout.",
-        type: "success" as const,
-      },
-      {
-        title: "🛡️ Shift Inspection Telemetry",
-        message: "Zero register drift detected on 5-color offset run (Job JC-01).",
-        type: "info" as const,
-      },
-    ];
-
-    let eventIdx = 0;
-    const interval = setInterval(() => {
-      const event = floorSimulationEvents[eventIdx % floorSimulationEvents.length];
-      eventIdx++;
-      triggerNotification(event);
-    }, 35000); // Trigger live update every 35 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
   // Helper stage progression %
   const getStageProgress = (stage: StageStatus): number => {
     switch (stage) {
@@ -615,13 +571,15 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
       };
       setAuditLogs((prev) => [newLog, ...prev]);
 
-      // Automated Notification
-      triggerNotification({
-        title: `Floor Progress: ${ord.jobCode}`,
-        message: `Advanced to "${nextStage}" stage by ${operatorName || currentUser.name}`,
-        type: nextStage === "Completed" || nextStage === "Dispatch" ? "success" : "info",
-        orderId,
-      });
+      // Only notify Admin when order finishes and is ready for dispatch/completed
+      if (nextStage === "Dispatch" || nextStage === "Completed") {
+        triggerNotification({
+          title: `🚚 Order Finished: ${ord.jobCode}`,
+          message: `Job has completed production stages and is ready for delivery challan & dispatch.`,
+          type: "success",
+          orderId,
+        });
+      }
     }
   };
 
@@ -1012,6 +970,14 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const deleteNotification = (id: string) => {
+    setNotifications((prev) => {
+      const updated = prev.filter((n) => n.id !== id);
+      saveToStorage("pp_erp_notifications", updated);
+      return updated;
+    });
+  };
+
   const clearAllNotifications = () => {
     setNotifications((prev) => {
       const updated = prev.map((n) => ({ ...n, isRead: true }));
@@ -1049,6 +1015,7 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
         expenses,
         notifications,
         addNotification,
+        deleteNotification,
         auditLogs,
         createOrder,
         advanceOrderStage,

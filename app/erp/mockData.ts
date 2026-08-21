@@ -997,10 +997,9 @@ export const INITIAL_EXPENSES: MonthlyExpenses = {
 };
 
 export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  { id: "notif-1", title: "Job Advance: ORD-0842", message: "Cipla Paracetamol 50k cartons moved to Press (Heidelberg CD 102).", timestamp: "10 mins ago", type: "info", isRead: false, orderId: "ORD-2026-0842" },
-  { id: "notif-2", title: "Low Stock Warning", message: "Thermal Gloss BOPP Film is at 18 rolls (Reorder threshold 5 rolls).", timestamp: "1 hour ago", type: "warning", isRead: false },
-  { id: "notif-3", title: "PO Approved", message: "PO-2026-0312 for ITC FBB Board ₹5,35,130 has been approved.", timestamp: "3 hours ago", type: "success", isRead: true },
-  { id: "notif-4", title: "Dispatch Clearance Needed", message: "ORD-2026-0841 Green Tea 25k is ready for Delivery Challan generation.", timestamp: "5 hours ago", type: "alert", isRead: false, orderId: "ORD-2026-0841" },
+  { id: "notif-1", title: "🚨 Low Stock Alert: 300 GSM FBB Board", message: "Cyber XL Pac is down to 1,200 sheets (Reorder threshold: 3,000 sheets).", timestamp: "15 mins ago", type: "critical", isRead: false },
+  { id: "notif-2", title: "⚠️ Order On Hold: ORD-2026-0839", message: "Emcure Vitamin D3 held pending client artwork revision approval.", timestamp: "1 hour ago", type: "warning", isRead: false, orderId: "ORD-2026-0839" },
+  { id: "notif-3", title: "🚚 Ready for Delivery Challan", message: "ORD-2026-0841 Organic Green Tea (25,000 pcs) finished and awaiting dispatch.", timestamp: "3 hours ago", type: "alert", isRead: false, orderId: "ORD-2026-0841" },
 ];
 
 export const INITIAL_AUDIT_LOGS: ProductionAuditLog[] = [
