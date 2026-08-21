@@ -1399,117 +1399,146 @@ export default function MasterDataView() {
 
       {/* ADD JOB MODAL */}
       {addJobModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-bold text-slate-900">Register New Master Job Code</h3>
-              <button onClick={() => setAddJobModalOpen(false)} className="text-slate-400 hover:text-slate-700">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
+          <div className="bg-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-700 space-y-5 text-white">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  <h3 className="text-lg font-bold text-white">Register Master Job Code</h3>
+                </div>
+                <p className="text-[11px] text-cyan-400 font-mono mt-0.5">
+                  Admin Manual Job Code Assignment & Specs
+                </p>
+              </div>
+              <button onClick={() => setAddJobModalOpen(false)} className="text-slate-400 hover:text-white p-1">✕</button>
             </div>
 
-            <form onSubmit={handleCreateJob} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleCreateJob} className="space-y-4 text-xs">
+              {/* Job Code & Customer */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Job Code *</label>
+                  <label className="block font-bold text-slate-200 mb-1">
+                    Manual Job Code (Admin Given) *
+                  </label>
                   <input
                     type="text"
                     value={newJob.jobCode}
-                    onChange={(e) => setNewJob({ ...newJob, jobCode: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold font-mono"
+                    onChange={(e) => setNewJob({ ...newJob, jobCode: e.target.value.toUpperCase() })}
+                    placeholder="e.g. JC-CIPLA-402"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-cyan-300 font-bold font-mono text-xs focus:outline-none focus:border-cyan-400"
                     required
                   />
+                  <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                    <span className="text-[9px] text-slate-500 font-mono">Prefix:</span>
+                    {["JC-", "PP-", "PK-", "MC-"].map((prefix) => (
+                      <button
+                        key={prefix}
+                        type="button"
+                        onClick={() => setNewJob({ ...newJob, jobCode: `${prefix}${newJob.jobCode.replace(/^(JC-|PP-|PK-|MC-)/, "") || "1001"}` })}
+                        className="text-[9px] font-mono px-1.5 py-0.2 bg-slate-800 text-cyan-300 rounded hover:bg-slate-700 border border-slate-700"
+                      >
+                        {prefix}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Customer *</label>
+                  <label className="block font-bold text-slate-200 mb-1">Customer / Client *</label>
                   <select
                     value={newJob.customerId}
                     onChange={(e) => setNewJob({ ...newJob, customerId: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-cyan-400"
                   >
                     {customers.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.companyName}
+                        {c.companyName} ({c.code})
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
 
+              {/* Product Description */}
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Product Description / Mono Carton *</label>
+                <label className="block font-bold text-slate-200 mb-1">Product Description / Mono Carton *</label>
                 <input
                   type="text"
                   value={newJob.productName}
                   onChange={(e) => setNewJob({ ...newJob, productName: e.target.value })}
                   placeholder="e.g. Azithromycin 500mg Drip-Off Carton"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
+                  className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-cyan-400"
                   required
                 />
               </div>
 
+              {/* Sheet & Board */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Sheet Size</label>
+                  <label className="block font-bold text-slate-300 mb-1">Sheet Size</label>
                   <input
                     type="text"
                     value={newJob.sheetSize}
                     onChange={(e) => setNewJob({ ...newJob, sheetSize: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Board & GSM</label>
+                  <label className="block font-bold text-slate-300 mb-1">Board Type</label>
                   <input
                     type="text"
                     value={newJob.boardType}
                     onChange={(e) => setNewJob({ ...newJob, boardType: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs"
                   />
                 </div>
               </div>
 
+              {/* GSM, Colors, Ups */}
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">GSM</label>
+                  <label className="block font-bold text-slate-300 mb-1">GSM</label>
                   <input
                     type="number"
                     value={newJob.boardGsm}
                     onChange={(e) => setNewJob({ ...newJob, boardGsm: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Colors (N)</label>
+                  <label className="block font-bold text-slate-300 mb-1">Colors (N)</label>
                   <input
                     type="number"
                     value={newJob.numColors}
                     onChange={(e) => setNewJob({ ...newJob, numColors: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Ups / Layout</label>
+                  <label className="block font-bold text-slate-300 mb-1">Ups / Layout</label>
                   <input
                     type="number"
                     value={newJob.ups}
                     onChange={(e) => setNewJob({ ...newJob, ups: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-xs"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setAddJobModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 font-semibold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md"
+                  className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold shadow-lg shadow-cyan-500/20 text-xs"
                 >
-                  Register Master Job
+                  Save Master Job Code
                 </button>
               </div>
             </form>
