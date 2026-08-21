@@ -143,7 +143,7 @@ export default function NewOrderEntry() {
           {/* Step 1 & 2 Card */}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
             <div className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-100">
-              Step 1 & 2: Select Customer & Pre-Defined Job Code
+              1. Select Customer & Pre-Defined Job Code
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -151,7 +151,7 @@ export default function NewOrderEntry() {
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
                   <Building2 className="w-4 h-4 text-emerald-600" />
-                  <span>Step 1: Select Customer *</span>
+                  <span>1. SELECT CUSTOMER *</span>
                 </label>
                 <select
                   value={selectedCustomerId}
@@ -160,7 +160,7 @@ export default function NewOrderEntry() {
                 >
                   {customers.map((c) => (
                     <option key={c.id} value={c.id}>
-                      [{c.code}] {c.companyName} • {c.location}
+                      {c.companyName} ({c.code})
                     </option>
                   ))}
                 </select>

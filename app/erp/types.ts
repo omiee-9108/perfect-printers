@@ -61,21 +61,27 @@ export interface EmployeeMaster {
   id: string;
   staffId: string;
   name: string;
-  department: "Pre-Press" | "Press" | "Post-Press" | "Quality" | "Dispatch" | "Accounts" | "Admin";
+  department: "Pre-Press" | "Press" | "Post-Press" | "Quality" | "Dispatch" | "Accounts" | "Admin" | "Sheet Allocation" | string;
   phone: string;
-  shift: "Morning (8AM-4PM)" | "Evening (4PM-12AM)" | "Night (12AM-8AM)" | "General";
-  status: "Active" | "On Leave" | "Inactive";
+  bloodGroup?: string;
+  email?: string;
+  shift?: "Morning (8AM-4PM)" | "Evening (4PM-12AM)" | "Night (12AM-8AM)" | "General" | string;
+  status?: "Active" | "On Leave" | "Inactive" | string;
+  isLocked?: boolean;
 }
 
 export interface MachineMaster {
   id: string;
   machineId: string;
   name: string;
-  type: "Offset Press" | "Die Cutter" | "CTP Processor" | "Laminator" | "Folder Gluer" | "Coater";
-  speedImpPerHour: number;
-  hourlyRate: number; // in INR
+  description?: string;
+  department?: "Pre-Press" | "Press" | "Post-Press" | "Finishing" | string;
+  type?: "Offset Press" | "Die Cutter" | "CTP Processor" | "Laminator" | "Folder Gluer" | "Coater" | string;
+  speedImpPerHour?: number;
+  hourlyRate?: number; // in INR
   currentJobCode?: string;
-  status: "Running" | "Idle" | "Maintenance";
+  status?: "Running" | "Idle" | "Maintenance" | "Active" | string;
+  isLocked?: boolean;
 }
 
 export interface ProcessMaster {

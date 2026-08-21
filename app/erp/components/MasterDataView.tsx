@@ -23,7 +23,13 @@ import {
   ExternalLink,
   Phone,
   MapPin,
+  Eye,
+  X,
+  Mail,
+  Droplet,
+  DollarSign,
 } from "lucide-react";
+import { EmployeeMaster, MachineMaster, ProcessMaster, AdminMaster } from "../types";
 
 export default function MasterDataView() {
   const {
@@ -35,9 +41,18 @@ export default function MasterDataView() {
     addJob,
     deleteJob,
     employees,
+    addEmployee,
+    deleteEmployee,
+    toggleLockEmployee,
     machines,
+    addMachine,
+    deleteMachine,
     processes,
+    addProcess,
+    deleteProcess,
     admins,
+    addAdmin,
+    deleteAdmin,
     currentUser,
   } = useErp();
 
@@ -47,10 +62,67 @@ export default function MasterDataView() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null);
+  const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(null);
+  const [expandedMachineId, setExpandedMachineId] = useState<string | null>(null);
+  const [expandedProcessId, setExpandedProcessId] = useState<string | null>(null);
+  const [expandedAdminId, setExpandedAdminId] = useState<string | null>(null);
 
   // Modals state
   const [addCustomerModalOpen, setAddCustomerModalOpen] = useState(false);
   const [addJobModalOpen, setAddJobModalOpen] = useState(false);
+  const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
+  const [viewingEmployee, setViewingEmployee] = useState<EmployeeMaster | null>(null);
+  const [addMachineModalOpen, setAddMachineModalOpen] = useState(false);
+  const [viewingMachine, setViewingMachine] = useState<MachineMaster | null>(null);
+  const [addProcessModalOpen, setAddProcessModalOpen] = useState(false);
+  const [viewingProcess, setViewingProcess] = useState<ProcessMaster | null>(null);
+  const [addAdminModalOpen, setAddAdminModalOpen] = useState(false);
+  const [viewingAdmin, setViewingAdmin] = useState<AdminMaster | null>(null);
+
+  // New Process Form state
+  const [newPrc, setNewPrc] = useState({
+    code: `P-0${processes.length + 1}`,
+    name: "",
+    unitRate: 1.5,
+    rateUnit: "per Sheet",
+    category: "Coating & Lamination",
+    machineType: "Laminator",
+    setupTimeMin: 20,
+  });
+
+  // New Admin Form state
+  const [newAdmin, setNewAdmin] = useState({
+    username: "",
+    name: "",
+    email: "",
+    role: "PRODUCTION" as "ADMIN" | "SALES" | "PRODUCTION" | "ACCOUNTS",
+    status: "Active",
+    lastLogin: "Just created",
+  });
+
+  // New Machine Form state
+  const [newMac, setNewMac] = useState({
+    machineId: `M-0${machines.length + 1}`,
+    name: "",
+    description: "",
+    department: "Press",
+    type: "Offset Press",
+    speedImpPerHour: 10000,
+    hourlyRate: 1500,
+    status: "Running",
+  });
+
+  // New Employee Form state
+  const [newEmp, setNewEmp] = useState({
+    staffId: `EMP-1${String(employees.length + 1).padStart(2, "0")}`,
+    name: "",
+    phone: "",
+    bloodGroup: "O+",
+    email: "",
+    department: "Press",
+    shift: "Morning (8AM-4PM)",
+    status: "Active",
+  });
 
   // New Customer Form state
   const [newCust, setNewCust] = useState({
@@ -85,15 +157,25 @@ export default function MasterDataView() {
     postPressProcesses: "Thermal Gloss Lamination, Die Punching, Pasting",
   });
 
-  // Sub-tabs list
-  const subTabs = [
-    { id: "customers", label: `Customers (${customers.length})`, icon: Building2 },
-    { id: "jobs", label: `Jobs (${jobs.length})`, icon: Layers },
-    { id: "employees", label: `Employees (${employees.length})`, icon: Users },
-    { id: "machines", label: `Machines (${machines.length})`, icon: Cpu },
-    { id: "processes", label: `Processes (${processes.length})`, icon: Scissors },
-    { id: "admins", label: `Admins (${admins.length})`, icon: Shield },
+  // Sub-tabs list with role-based filtering
+  const allSubTabs = [
+    { id: "customers", label: `Customers (${customers.length})`, icon: Building2, rolesAllowed: ["ADMIN", "SALES", "ACCOUNTS"] },
+    { id: "jobs", label: `Jobs (${jobs.length})`, icon: Layers, rolesAllowed: ["ADMIN", "SALES", "PRODUCTION"] },
+    { id: "employees", label: `Employees (${employees.length})`, icon: Users, rolesAllowed: ["ADMIN", "PRODUCTION", "ACCOUNTS"] },
+    { id: "machines", label: `Machines (${machines.length})`, icon: Cpu, rolesAllowed: ["ADMIN", "PRODUCTION"] },
+    { id: "processes", label: `Processes (${processes.length})`, icon: Scissors, rolesAllowed: ["ADMIN", "PRODUCTION"] },
+    { id: "admins", label: `Admins (${admins.length})`, icon: Shield, rolesAllowed: ["ADMIN"] },
   ];
+
+  const subTabs = allSubTabs.filter((st) => st.rolesAllowed.includes(currentUser.role));
+
+  // Auto-switch sub-tab if active sub-tab is not allowed for current role
+  React.useEffect(() => {
+    const isAllowed = subTabs.some((st) => st.id === activeSubTab);
+    if (!isAllowed && subTabs.length > 0) {
+      setActiveSubTab(subTabs[0].id as any);
+    }
+  }, [currentUser.role, subTabs, activeSubTab]);
 
   // Export Customers to CSV (Secured)
   const handleExportCustomers = () => {
@@ -113,9 +195,81 @@ export default function MasterDataView() {
     a.click();
   };
 
+  // Export Employees to CSV (Secured)
+  const handleExportEmployees = () => {
+    const headers = "Staff ID,Name,Phone,Blood Group,Email,Department,Shift,Status\n";
+    const rows = employees
+      .map((e) =>
+        [e.staffId, e.name, e.phone, e.bloodGroup || "O+", e.email || "", e.department, e.shift || "General", e.status || "Active"]
+          .map(sanitizeCsvValue)
+          .join(",")
+      )
+      .join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Perfect_Printers_Employees_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
+
+  // Export Machines to CSV (Secured)
+  const handleExportMachines = () => {
+    const headers = "Machine ID,Name,Description,Department,Type,Speed (imp/hr),Hourly Tariff (INR),Status\n";
+    const rows = machines
+      .map((m) =>
+        [m.machineId, m.name, m.description || "", m.department || "", m.type || "", String(m.speedImpPerHour || 0), String(m.hourlyRate || 0), m.status || "Running"]
+          .map(sanitizeCsvValue)
+          .join(",")
+      )
+      .join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Perfect_Printers_Machines_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
+
+  // Export Processes to CSV (Secured)
+  const handleExportProcesses = () => {
+    const headers = "Code,Process Name,Category,Unit Tariff,Rate Unit,Machine Type,Setup Time (mins)\n";
+    const rows = processes
+      .map((p) =>
+        [p.code, p.name, p.category, String(p.unitRate), p.rateUnit, p.machineType, String(p.setupTimeMin)]
+          .map(sanitizeCsvValue)
+          .join(",")
+      )
+      .join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Perfect_Printers_Processes_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
+
+  // Export Admins to CSV (Secured)
+  const handleExportAdmins = () => {
+    const headers = "Role,Name,Username,Email,Status,Last Active\n";
+    const rows = admins
+      .map((a) =>
+        [a.role, a.name, a.username, a.email, a.status, a.lastLogin]
+          .map(sanitizeCsvValue)
+          .join(",")
+      )
+      .join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Perfect_Printers_Admins_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
+
   // Simulated Excel Import
   const handleImportExcel = () => {
-    alert("Excel Sheet Parsed: 3 new client records verified with active GSTINs.");
+    alert("Excel Sheet Parsed: Records verified successfully.");
   };
 
   // Filtered Customers
@@ -222,7 +376,7 @@ export default function MasterDataView() {
         </div>
 
         {/* Global Sub-Tab Navigation Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
+        <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
           {subTabs.map((st) => {
             const Icon = st.icon;
             const isActive = activeSubTab === st.id;
@@ -503,41 +657,177 @@ export default function MasterDataView() {
       {/* SUB-TAB 3: EMPLOYEES */}
       {activeSubTab === "employees" && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900">
-              Press Floor Staff & Shift Allocation
-            </h3>
-            <button
-              onClick={() => alert("Staff registration is linked with Plant HR Bio-metric terminal.")}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
-            >
-              <Plus className="w-4 h-4" /> Add Employee
-            </button>
+          {/* Action Strip: Search + Import + Export + Add Employee */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search name, phone, department, email..."
+                className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                onClick={handleImportExcel}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+                title="Import from Excel"
+              >
+                <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Import XLS</span>
+              </button>
+
+              <button
+                onClick={handleExportEmployees}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+                title="Export to XLS/CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Export XLS</span>
+              </button>
+
+              <button
+                onClick={() => setAddEmployeeModalOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Employee</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {employees.map((emp) => (
-              <div key={emp.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-800 rounded">
-                    {emp.staffId}
-                  </span>
-                  <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded">
-                    {emp.status}
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-slate-900">{emp.name}</h4>
-                <div className="text-xs text-slate-600 font-semibold">
-                  Department: <span className="text-emerald-800">{emp.department}</span>
-                </div>
-                <div className="text-xs text-slate-500 font-mono">
-                  Shift: {emp.shift}
-                </div>
-                <div className="text-xs text-slate-500 font-mono flex items-center gap-1 pt-1 border-t border-slate-100">
-                  <Phone className="w-3 h-3 text-emerald-600" /> {emp.phone}
-                </div>
-              </div>
-            ))}
+          {/* Employee Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {employees
+              .filter((emp) => {
+                const q = searchQuery.toLowerCase().trim();
+                return (
+                  !q ||
+                  emp.name.toLowerCase().includes(q) ||
+                  emp.phone.includes(q) ||
+                  (emp.email && emp.email.toLowerCase().includes(q)) ||
+                  (emp.department && emp.department.toLowerCase().includes(q)) ||
+                  (emp.bloodGroup && emp.bloodGroup.toLowerCase().includes(q)) ||
+                  emp.staffId.toLowerCase().includes(q)
+                );
+              })
+              .map((emp) => {
+                const isExpanded = expandedEmployeeId === emp.id;
+                return (
+                  <div
+                    key={emp.id}
+                    className={`bg-white border rounded-2xl p-5 shadow-sm transition-all flex flex-col justify-between ${
+                      emp.isLocked ? "border-amber-200 bg-amber-50/20" : "border-slate-200 hover:border-emerald-300"
+                    }`}
+                  >
+                    <div>
+                      {/* Header: Code Badge + Lock Indicator + Actions */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-900 text-white shadow-xs">
+                            {emp.staffId}
+                          </span>
+                          {emp.isLocked && (
+                            <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+                              <Lock className="w-2.5 h-2.5" /> LOCKED
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Action Icons */}
+                        <div className="flex items-center gap-1 text-slate-400">
+                          <button
+                            onClick={() => toggleLockEmployee(emp.id)}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              emp.isLocked ? "text-amber-700 hover:bg-amber-100" : "hover:text-slate-800 hover:bg-slate-100"
+                            }`}
+                            title={emp.isLocked ? "Unlock Employee" : "Lock Employee"}
+                          >
+                            {emp.isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                          </button>
+                          {currentUser.role === "ADMIN" && (
+                            <button
+                              onClick={() => {
+                                if (confirm(`Remove employee ${emp.name} from records?`)) {
+                                  deleteEmployee(emp.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg hover:text-red-700 hover:bg-red-50 transition-colors"
+                              title="Delete Employee"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() =>
+                              setExpandedEmployeeId(isExpanded ? null : emp.id)
+                            }
+                            className="p-1.5 rounded-lg hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                            title="Expand Details"
+                          >
+                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Employee Name */}
+                      <h3 className="text-base font-extrabold text-slate-900 leading-snug">
+                        {emp.name}
+                      </h3>
+                      <div className="text-xs text-slate-600 font-medium mt-0.5">
+                        Department: <span className="font-semibold text-slate-800">{emp.department}</span>
+                      </div>
+
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1 mt-2.5">
+                        {emp.bloodGroup && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                            Blood: {emp.bloodGroup}
+                          </span>
+                        )}
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                          {emp.shift || "General"}
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold">
+                          {emp.status || "Active"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Contact & Location Footer */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 space-y-1 text-xs text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="font-mono">{emp.phone}</span>
+                      </div>
+                      {emp.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span className="truncate font-mono text-[11px] text-slate-500">{emp.email}</span>
+                        </div>
+                      )}
+
+                      {/* Expandable Details */}
+                      {isExpanded && (
+                        <div className="mt-3 pt-2 border-t border-dashed border-slate-200 space-y-1.5 text-[11px] font-mono animate-fadeIn">
+                          <div className="text-slate-500">
+                            Staff ID: <span className="text-slate-900 font-bold">{emp.staffId}</span>
+                          </div>
+                          <div className="text-slate-500">
+                            Plant Wing: <span className="text-slate-900 font-bold">MIDC Miraj - Unit 1</span>
+                          </div>
+                          <div className="text-slate-500">
+                            Shift Window: <span className="text-emerald-700 font-semibold">{emp.shift || "8:00 AM - 4:30 PM"}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}
@@ -545,57 +835,172 @@ export default function MasterDataView() {
       {/* SUB-TAB 4: MACHINES */}
       {activeSubTab === "machines" && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900">
-              Machinery Master & Hourly Tariff (MES)
-            </h3>
-            <button
-              onClick={() => alert("New machine profiling requires Plant Engineering approval.")}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
-            >
-              <Plus className="w-4 h-4" /> Add Machine
-            </button>
+          {/* Action Strip: Search + Import + Export + Add Machine */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search machine, specs, type, department..."
+                className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                onClick={handleImportExcel}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+                title="Import from Excel"
+              >
+                <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Import XLS</span>
+              </button>
+
+              <button
+                onClick={handleExportMachines}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+                title="Export to XLS/CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Export XLS</span>
+              </button>
+
+              <button
+                onClick={() => setAddMachineModalOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Machine</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {machines.map((mac) => (
-              <div key={mac.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-900 text-white rounded">
-                    {mac.machineId}
-                  </span>
-                  <span
-                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                      mac.status === "Running"
-                        ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
-                        : "bg-slate-100 text-slate-700"
+          {/* Machine Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {machines
+              .filter((mac) => {
+                const q = searchQuery.toLowerCase().trim();
+                return (
+                  !q ||
+                  mac.name.toLowerCase().includes(q) ||
+                  (mac.description && mac.description.toLowerCase().includes(q)) ||
+                  (mac.department && mac.department.toLowerCase().includes(q)) ||
+                  (mac.type && mac.type.toLowerCase().includes(q)) ||
+                  mac.machineId.toLowerCase().includes(q)
+                );
+              })
+              .map((mac) => {
+                const isExpanded = expandedMachineId === mac.id;
+                return (
+                  <div
+                    key={mac.id}
+                    className={`bg-white border rounded-2xl p-5 shadow-sm transition-all flex flex-col justify-between ${
+                      mac.isLocked ? "border-amber-200 bg-amber-50/20" : "border-slate-200 hover:border-emerald-300"
                     }`}
                   >
-                    {mac.status}
-                  </span>
-                </div>
+                    <div>
+                      {/* Header: Machine ID Badge + Lock + Actions */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-900 text-white shadow-xs">
+                            {mac.machineId}
+                          </span>
+                          {mac.isLocked && (
+                            <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+                              <Lock className="w-2.5 h-2.5" /> LOCKED
+                            </span>
+                          )}
+                        </div>
 
-                <h4 className="text-sm font-bold text-slate-900 leading-snug">{mac.name}</h4>
-                <div className="text-xs text-slate-500 font-mono">Type: {mac.type}</div>
+                        {/* Action Icons */}
+                        <div className="flex items-center gap-1 text-slate-400">
+                          <button
+                            onClick={() => setViewingMachine(mac)}
+                            className="p-1.5 rounded-lg hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                            title="View Details"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          {currentUser.role === "ADMIN" && (
+                            <button
+                              onClick={() => {
+                                if (confirm(`Remove machine ${mac.name} from records?`)) {
+                                  deleteMachine(mac.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg hover:text-red-700 hover:bg-red-50 transition-colors"
+                              title="Delete Machine"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() =>
+                              setExpandedMachineId(isExpanded ? null : mac.id)
+                            }
+                            className="p-1.5 rounded-lg hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                            title="Expand Details"
+                          >
+                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs font-mono">
-                  <div>
-                    <div className="text-[10px] text-slate-400">Max Speed</div>
-                    <div className="font-bold text-slate-900">{mac.speedImpPerHour.toLocaleString()} imp/hr</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-400">Hourly Tariff</div>
-                    <div className="font-bold text-emerald-800">₹{mac.hourlyRate.toLocaleString()} / hr</div>
-                  </div>
-                </div>
+                      {/* Machine Name */}
+                      <h3 className="text-base font-extrabold text-slate-900 leading-snug">
+                        {mac.name}
+                      </h3>
+                      <div className="text-xs text-slate-600 font-medium mt-0.5">
+                        Spec: <span className="font-semibold text-slate-800">{mac.description || "Packaging Production"}</span>
+                      </div>
 
-                {mac.currentJobCode && (
-                  <div className="text-[11px] font-mono text-emerald-900 bg-emerald-50 p-2 rounded-lg border border-emerald-200">
-                    Running Job: <span className="font-bold">{mac.currentJobCode}</span>
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1 mt-2.5">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                          {mac.department || (mac.type === "Offset Press" ? "Press" : "Post-Press")}
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                          {mac.type || "Offset Press"}
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold">
+                          {mac.status || "Running"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Technical Specs Footer */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 space-y-1 text-xs text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <Cpu className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="font-mono">Speed: {(mac.speedImpPerHour || 10000).toLocaleString()} imp/hr</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="font-mono">Tariff: ₹{(mac.hourlyRate || 1500).toLocaleString()} / hr</span>
+                      </div>
+
+                      {/* Expandable Details */}
+                      {isExpanded && (
+                        <div className="mt-3 pt-2 border-t border-dashed border-slate-200 space-y-1.5 text-[11px] font-mono animate-fadeIn">
+                          <div className="text-slate-500">
+                            Machine ID: <span className="text-slate-900 font-bold">{mac.machineId}</span>
+                          </div>
+                          <div className="text-slate-500">
+                            Plant Wing: <span className="text-slate-900 font-bold">MIDC Miraj - Unit 1</span>
+                          </div>
+                          {mac.currentJobCode && (
+                            <div className="text-slate-500">
+                              Active Job: <span className="text-emerald-700 font-bold">{mac.currentJobCode}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+                );
+              })}
           </div>
         </div>
       )}
@@ -603,45 +1008,158 @@ export default function MasterDataView() {
       {/* SUB-TAB 5: PROCESSES */}
       {activeSubTab === "processes" && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900">
-              Post-Press & Conversion Processes Tariff
-            </h3>
-            <button
-              onClick={() => alert("Process tariff changes require Plant Production Head authorization.")}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
-            >
-              <Plus className="w-4 h-4" /> Add Process
-            </button>
+          {/* Action Strip: Search + Import + Export + Add Process */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search process, code, category, machine..."
+                className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                onClick={handleImportExcel}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+                title="Import from Excel"
+              >
+                <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Import XLS</span>
+              </button>
+
+              <button
+                onClick={handleExportProcesses}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+                title="Export to XLS/CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Export XLS</span>
+              </button>
+
+              <button
+                onClick={() => setAddProcessModalOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Process</span>
+              </button>
+            </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-50 text-slate-500 font-mono text-[10px] uppercase border-b border-slate-200">
-                <tr>
-                  <th className="p-3.5">Code</th>
-                  <th className="p-3.5">Process Name</th>
-                  <th className="p-3.5">Category</th>
-                  <th className="p-3.5">Unit Tariff</th>
-                  <th className="p-3.5">Machine Type</th>
-                  <th className="p-3.5">Setup Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {processes.map((prc) => (
-                  <tr key={prc.id} className="hover:bg-slate-50/80">
-                    <td className="p-3.5 font-mono font-bold text-slate-900">{prc.code}</td>
-                    <td className="p-3.5 font-bold text-slate-800">{prc.name}</td>
-                    <td className="p-3.5 text-slate-600 font-medium">{prc.category}</td>
-                    <td className="p-3.5 font-mono font-bold text-emerald-800">
-                      ₹{prc.unitRate} {prc.rateUnit}
-                    </td>
-                    <td className="p-3.5 text-slate-600">{prc.machineType}</td>
-                    <td className="p-3.5 font-mono text-slate-500">{prc.setupTimeMin} mins</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Process Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {processes
+              .filter((prc) => {
+                const q = searchQuery.toLowerCase().trim();
+                return (
+                  !q ||
+                  prc.name.toLowerCase().includes(q) ||
+                  prc.code.toLowerCase().includes(q) ||
+                  prc.category.toLowerCase().includes(q) ||
+                  prc.machineType.toLowerCase().includes(q)
+                );
+              })
+              .map((prc) => {
+                const isExpanded = expandedProcessId === prc.id;
+                return (
+                  <div
+                    key={prc.id}
+                    className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm transition-all hover:border-emerald-300 flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Header: Code Badge + Actions */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-900 text-white shadow-xs">
+                          {prc.code}
+                        </span>
+
+                        {/* Action Icons */}
+                        <div className="flex items-center gap-1 text-slate-400">
+                          <button
+                            onClick={() => setViewingProcess(prc)}
+                            className="p-1.5 rounded-lg hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                            title="View Details"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          {currentUser.role === "ADMIN" && (
+                            <button
+                              onClick={() => {
+                                if (confirm(`Remove process ${prc.name}?`)) {
+                                  deleteProcess(prc.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg hover:text-red-700 hover:bg-red-50 transition-colors"
+                              title="Delete Process"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setExpandedProcessId(isExpanded ? null : prc.id)}
+                            className="p-1.5 rounded-lg hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                            title="Expand Details"
+                          >
+                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Process Name */}
+                      <h3 className="text-base font-extrabold text-slate-900 leading-snug">
+                        {prc.name}
+                      </h3>
+                      <div className="text-xs text-slate-600 font-medium mt-0.5">
+                        Machine: <span className="font-semibold text-slate-800">{prc.machineType}</span>
+                      </div>
+
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1 mt-2.5">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                          {prc.category}
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                          Setup: {prc.setupTimeMin}m
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold">
+                          Active Tariff
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Rate & Setup Specs Footer */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 space-y-1 text-xs text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="font-mono font-bold text-emerald-800">₹{prc.unitRate} {prc.rateUnit}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Cpu className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="truncate font-mono text-[11px] text-slate-500">Machine: {prc.machineType}</span>
+                      </div>
+
+                      {/* Expandable Details */}
+                      {isExpanded && (
+                        <div className="mt-3 pt-2 border-t border-dashed border-slate-200 space-y-1.5 text-[11px] font-mono animate-fadeIn">
+                          <div className="text-slate-500">
+                            Process Code: <span className="text-slate-900 font-bold">{prc.code}</span>
+                          </div>
+                          <div className="text-slate-500">
+                            Estimated Setup: <span className="text-slate-900 font-bold">{prc.setupTimeMin} minutes</span>
+                          </div>
+                          <div className="text-slate-500">
+                            Category Scope: <span className="text-emerald-700 font-semibold">{prc.category}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}
@@ -649,37 +1167,113 @@ export default function MasterDataView() {
       {/* SUB-TAB 6: ADMINS */}
       {activeSubTab === "admins" && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900">
-              ERP User Accounts & Role Permissions
-            </h3>
-            <button
-              onClick={() => alert("User credentials and access roles are managed by IT Admin.")}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
-            >
-              <Plus className="w-4 h-4" /> Add User
-            </button>
+          {/* Action Strip: Search + Export + Add Admin */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search staff, username, email, role..."
+                className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                onClick={handleExportAdmins}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+                title="Export to XLS/CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Export XLS</span>
+              </button>
+
+              <button
+                onClick={() => setAddAdminModalOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add User</span>
+              </button>
+            </div>
           </div>
 
+          {/* Admin Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {admins.map((adm) => (
-              <div key={adm.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-slate-900 text-white rounded">
-                    {adm.role}
-                  </span>
-                  <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
-                    {adm.status}
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-slate-900">{adm.name}</h4>
-                <div className="text-xs text-slate-500 font-mono">@{adm.username}</div>
-                <div className="text-xs text-slate-600 truncate">{adm.email}</div>
-                <div className="text-[10px] text-slate-400 font-mono pt-1 border-t border-slate-100">
-                  Last Active: {adm.lastLogin}
-                </div>
-              </div>
-            ))}
+            {admins
+              .filter((adm) => {
+                const q = searchQuery.toLowerCase().trim();
+                return (
+                  !q ||
+                  adm.name.toLowerCase().includes(q) ||
+                  adm.username.toLowerCase().includes(q) ||
+                  adm.email.toLowerCase().includes(q) ||
+                  adm.role.toLowerCase().includes(q)
+                );
+              })
+              .map((adm) => {
+                const isExpanded = expandedAdminId === adm.id;
+                return (
+                  <div
+                    key={adm.id}
+                    className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 transition-all hover:border-emerald-300 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-slate-900 text-white rounded">
+                          {adm.role}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setViewingAdmin(adm)}
+                            className="p-1 text-slate-400 hover:text-slate-800"
+                            title="View Details"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          {currentUser.role === "ADMIN" && admins.length > 1 && (
+                            <button
+                              onClick={() => {
+                                if (confirm(`Remove user ${adm.name}?`)) {
+                                  deleteAdmin(adm.id);
+                                }
+                              }}
+                              className="p-1 text-slate-400 hover:text-rose-600"
+                              title="Delete User"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <h4 className="text-sm font-bold text-slate-900 leading-snug">{adm.name}</h4>
+                      <div className="text-xs text-slate-500 font-mono">@{adm.username}</div>
+
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                          {adm.status}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+                          Role: {adm.role}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 space-y-1 text-xs text-slate-600">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="text-[11px] font-mono text-slate-500 truncate">{adm.email}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        Last Active: {adm.lastLogin}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}
@@ -919,6 +1513,764 @@ export default function MasterDataView() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD EMPLOYEE MODAL */}
+      {addEmployeeModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-scaleUp">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-lg">Add New Employee</h3>
+              </div>
+              <button
+                onClick={() => setAddEmployeeModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newEmp.name.trim() || !newEmp.phone.trim()) return;
+                addEmployee({
+                  staffId: newEmp.staffId,
+                  name: newEmp.name,
+                  phone: newEmp.phone,
+                  bloodGroup: newEmp.bloodGroup,
+                  email: newEmp.email,
+                  department: newEmp.department,
+                  shift: newEmp.shift as any,
+                  status: newEmp.status as any,
+                  isLocked: false,
+                });
+                setAddEmployeeModalOpen(false);
+                setNewEmp({
+                  staffId: `EMP-1${String(employees.length + 2).padStart(2, "0")}`,
+                  name: "",
+                  phone: "",
+                  bloodGroup: "O+",
+                  email: "",
+                  department: "Press",
+                  shift: "Morning (8AM-4PM)",
+                  status: "Active",
+                });
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Full Name & Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={newEmp.name}
+                  onChange={(e) => setNewEmp({ ...newEmp, name: e.target.value })}
+                  placeholder="e.g. Mr. Basavraj Khemalapure"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Phone / Mobile *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={newEmp.phone}
+                    onChange={(e) => setNewEmp({ ...newEmp, phone: e.target.value })}
+                    placeholder="e.g. 9011148816"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Blood Group</label>
+                  <select
+                    value={newEmp.bloodGroup}
+                    onChange={(e) => setNewEmp({ ...newEmp, bloodGroup: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:outline-none focus:border-emerald-500"
+                  >
+                    {["O+", "A+", "B+", "AB+", "O-", "A-", "B-", "AB-"].map((bg) => (
+                      <option key={bg} value={bg}>
+                        {bg}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={newEmp.email}
+                  onChange={(e) => setNewEmp({ ...newEmp, email: e.target.value })}
+                  placeholder="e.g. employee@gmail.com"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Department *</label>
+                  <select
+                    value={newEmp.department}
+                    onChange={(e) => setNewEmp({ ...newEmp, department: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:outline-none focus:border-emerald-500"
+                  >
+                    {[
+                      "Sheet Allocation",
+                      "Pre-Press",
+                      "Press",
+                      "Post-Press",
+                      "Dispatch",
+                      "Accounts",
+                      "Quality",
+                      "Admin",
+                    ].map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Shift</label>
+                  <select
+                    value={newEmp.shift}
+                    onChange={(e) => setNewEmp({ ...newEmp, shift: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="Morning (8AM-4PM)">Morning (8AM-4PM)</option>
+                    <option value="Evening (4PM-12AM)">Evening (4PM-12AM)</option>
+                    <option value="Night (12AM-8AM)">Night (12AM-8AM)</option>
+                    <option value="General">General</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAddEmployeeModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#0d3b2e] hover:bg-[#07241c] text-white font-bold shadow-md"
+                >
+                  Save Employee
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW EMPLOYEE MODAL */}
+      {viewingEmployee && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-scaleUp">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-lg">Employee Details</h3>
+              </div>
+              <button
+                onClick={() => setViewingEmployee(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+                <div className="text-base font-bold text-slate-900">
+                  {viewingEmployee.name}
+                </div>
+                <div className="text-slate-500 font-mono">
+                  Staff ID: <span className="font-bold text-slate-800">{viewingEmployee.staffId}</span>
+                </div>
+                <div className="text-slate-500">
+                  Phone: <span className="font-bold text-slate-800 font-mono">{viewingEmployee.phone}</span>
+                </div>
+                {viewingEmployee.bloodGroup && (
+                  <div className="text-slate-500">
+                    Blood Group: <span className="font-bold text-rose-600 font-mono">{viewingEmployee.bloodGroup}</span>
+                  </div>
+                )}
+                {viewingEmployee.email && (
+                  <div className="text-slate-500">
+                    Email: <span className="font-bold text-slate-800 font-mono">{viewingEmployee.email}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-slate-600">
+                <div className="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono font-bold">Department</div>
+                  <div className="font-bold text-emerald-900 mt-0.5">{viewingEmployee.department}</div>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono font-bold">Shift</div>
+                  <div className="font-bold text-slate-800 mt-0.5">{viewingEmployee.shift || "General"}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setViewingEmployee(null)}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD MACHINE MODAL */}
+      {addMachineModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-scaleUp">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-lg">Add New Machine</h3>
+              </div>
+              <button
+                onClick={() => setAddMachineModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newMac.name.trim()) return;
+                addMachine({
+                  machineId: newMac.machineId,
+                  name: newMac.name,
+                  description: newMac.description,
+                  department: newMac.department,
+                  type: newMac.type as any,
+                  speedImpPerHour: Number(newMac.speedImpPerHour),
+                  hourlyRate: Number(newMac.hourlyRate),
+                  status: newMac.status as any,
+                });
+                setAddMachineModalOpen(false);
+                setNewMac({
+                  machineId: `M-0${machines.length + 2}`,
+                  name: "",
+                  description: "",
+                  department: "Press",
+                  type: "Offset Press",
+                  speedImpPerHour: 10000,
+                  hourlyRate: 1500,
+                  status: "Running",
+                });
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Machine Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newMac.name}
+                  onChange={(e) => setNewMac({ ...newMac, name: e.target.value })}
+                  placeholder="e.g. Heidelberg SM102 - 5 + L"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Description / Spec</label>
+                <input
+                  type="text"
+                  value={newMac.description}
+                  onChange={(e) => setNewMac({ ...newMac, description: e.target.value })}
+                  placeholder="e.g. Printing - 28 x 40 - 5 Color + Coater"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Department</label>
+                  <select
+                    value={newMac.department}
+                    onChange={(e) => setNewMac({ ...newMac, department: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="Pre-Press">Pre-Press</option>
+                    <option value="Press">Press</option>
+                    <option value="Post-Press">Post-Press</option>
+                    <option value="Finishing">Finishing</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Machine Type</label>
+                  <select
+                    value={newMac.type}
+                    onChange={(e) => setNewMac({ ...newMac, type: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="Offset Press">Offset Press</option>
+                    <option value="Die Cutter">Die Cutter</option>
+                    <option value="Laminator">Laminator</option>
+                    <option value="Folder Gluer">Folder Gluer</option>
+                    <option value="Coater">Coater</option>
+                    <option value="CTP Processor">CTP Processor</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAddMachineModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#0d3b2e] hover:bg-[#07241c] text-white font-bold shadow-md"
+                >
+                  Save Machine
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW MACHINE MODAL */}
+      {viewingMachine && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-scaleUp">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-lg">Machine Details</h3>
+              </div>
+              <button
+                onClick={() => setViewingMachine(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+                <div className="text-base font-bold text-slate-900">
+                  {viewingMachine.name}
+                </div>
+                {viewingMachine.description && (
+                  <div className="text-slate-500">
+                    {viewingMachine.description}
+                  </div>
+                )}
+                <div className="text-slate-500 font-mono">
+                  Machine ID: <span className="font-bold text-slate-800">{viewingMachine.machineId}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-slate-600">
+                <div className="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono font-bold">Department</div>
+                  <div className="font-bold text-emerald-900 mt-0.5">{viewingMachine.department || "Press"}</div>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono font-bold">Type</div>
+                  <div className="font-bold text-slate-800 mt-0.5">{viewingMachine.type || "Offset Press"}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setViewingMachine(null)}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD PROCESS MODAL */}
+      {addProcessModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-scaleUp">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Scissors className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-lg">Add New Process Tariff</h3>
+              </div>
+              <button
+                onClick={() => setAddProcessModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newPrc.name.trim()) return;
+                addProcess({
+                  code: newPrc.code,
+                  name: newPrc.name,
+                  category: newPrc.category as any,
+                  unitRate: Number(newPrc.unitRate),
+                  rateUnit: newPrc.rateUnit,
+                  machineType: newPrc.machineType,
+                  setupTimeMin: Number(newPrc.setupTimeMin),
+                });
+                setAddProcessModalOpen(false);
+                setNewPrc({
+                  code: `P-0${processes.length + 2}`,
+                  name: "",
+                  unitRate: 1.5,
+                  rateUnit: "per Sheet",
+                  category: "Coating & Lamination",
+                  machineType: "Laminator",
+                  setupTimeMin: 20,
+                });
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Process Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newPrc.code}
+                    onChange={(e) => setNewPrc({ ...newPrc, code: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Category</label>
+                  <select
+                    value={newPrc.category}
+                    onChange={(e) => setNewPrc({ ...newPrc, category: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="Pre-Press">Pre-Press</option>
+                    <option value="Press">Press</option>
+                    <option value="Coating & Lamination">Coating & Lamination</option>
+                    <option value="Finishing & Pasting">Finishing & Pasting</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Process Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newPrc.name}
+                  onChange={(e) => setNewPrc({ ...newPrc, name: e.target.value })}
+                  placeholder="e.g. Thermal Gloss / Matte BOPP Lamination"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Unit Tariff (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newPrc.unitRate}
+                    onChange={(e) => setNewPrc({ ...newPrc, unitRate: Number(e.target.value) })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Rate Unit</label>
+                  <input
+                    type="text"
+                    value={newPrc.rateUnit}
+                    onChange={(e) => setNewPrc({ ...newPrc, rateUnit: e.target.value })}
+                    placeholder="per Sheet / per 1000 Imp"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Setup (mins)</label>
+                  <input
+                    type="number"
+                    value={newPrc.setupTimeMin}
+                    onChange={(e) => setNewPrc({ ...newPrc, setupTimeMin: Number(e.target.value) })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Machine Type</label>
+                <input
+                  type="text"
+                  value={newPrc.machineType}
+                  onChange={(e) => setNewPrc({ ...newPrc, machineType: e.target.value })}
+                  placeholder="e.g. Laminator / Offset Press / Die Cutter"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAddProcessModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#0d3b2e] hover:bg-[#07241c] text-white font-bold shadow-md"
+                >
+                  Save Process
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW PROCESS MODAL */}
+      {viewingProcess && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-scaleUp">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Scissors className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-lg">Process Details</h3>
+              </div>
+              <button
+                onClick={() => setViewingProcess(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+                <div className="text-base font-bold text-slate-900">
+                  {viewingProcess.name}
+                </div>
+                <div className="text-slate-500 font-mono">
+                  Code: <span className="font-bold text-slate-800">{viewingProcess.code}</span>
+                </div>
+                <div className="text-emerald-800 font-mono font-bold">
+                  Tariff: ₹{viewingProcess.unitRate} {viewingProcess.rateUnit}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-slate-600">
+                <div className="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono font-bold">Category</div>
+                  <div className="font-bold text-emerald-900 mt-0.5">{viewingProcess.category}</div>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono font-bold">Setup Time</div>
+                  <div className="font-bold text-slate-800 mt-0.5">{viewingProcess.setupTimeMin} mins</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setViewingProcess(null)}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD ADMIN MODAL */}
+      {addAdminModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-scaleUp">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-lg">Add ERP User / Staff Account</h3>
+              </div>
+              <button
+                onClick={() => setAddAdminModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newAdmin.name.trim() || !newAdmin.username.trim()) return;
+                addAdmin({
+                  name: newAdmin.name,
+                  username: newAdmin.username.toLowerCase().replace(/\s+/g, "_"),
+                  email: newAdmin.email || `${newAdmin.username}@perfectprinters.com`,
+                  role: newAdmin.role,
+                  status: newAdmin.status as "Active" | "Suspended",
+                  lastLogin: "Just created",
+                });
+                setAddAdminModalOpen(false);
+                setNewAdmin({
+                  username: "",
+                  name: "",
+                  email: "",
+                  role: "PRODUCTION",
+                  status: "Active",
+                  lastLogin: "Just created",
+                });
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newAdmin.name}
+                  onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
+                  placeholder="e.g. Ramesh Kulkarni"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Username *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newAdmin.username}
+                    onChange={(e) => setNewAdmin({ ...newAdmin, username: e.target.value })}
+                    placeholder="e.g. ramesh_k"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Assigned Role</label>
+                  <select
+                    value={newAdmin.role}
+                    onChange={(e) => setNewAdmin({ ...newAdmin, role: e.target.value as any })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="ADMIN">ADMIN (Full Access)</option>
+                    <option value="PRODUCTION">PRODUCTION (Floor Manager)</option>
+                    <option value="SALES">SALES (Orders & Estimation)</option>
+                    <option value="ACCOUNTS">ACCOUNTS (Billing & PO)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={newAdmin.email}
+                  onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                  placeholder="e.g. ramesh@perfectprinters.com"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAddAdminModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#0d3b2e] hover:bg-[#07241c] text-white font-bold shadow-md"
+                >
+                  Create User
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW ADMIN MODAL */}
+      {viewingAdmin && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-scaleUp">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-lg">User Profile</h3>
+              </div>
+              <button
+                onClick={() => setViewingAdmin(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+                <div className="text-base font-bold text-slate-900">
+                  {viewingAdmin.name}
+                </div>
+                <div className="text-slate-500 font-mono">
+                  Username: <span className="font-bold text-slate-800">@{viewingAdmin.username}</span>
+                </div>
+                <div className="text-slate-500 font-mono">
+                  Email: <span className="font-bold text-slate-800">{viewingAdmin.email}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-slate-600">
+                <div className="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono font-bold">Role Guard</div>
+                  <div className="font-bold text-emerald-900 mt-0.5">{viewingAdmin.role}</div>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono font-bold">Status</div>
+                  <div className="font-bold text-slate-800 mt-0.5">{viewingAdmin.status}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setViewingAdmin(null)}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -71,17 +71,17 @@ export default function ErpNavbar() {
   }
 
   const tabs: NavTabItem[] = [
-    { id: "job-order", label: "Job Order", icon: Layers, badge: pendingCount > 0 ? pendingCount : undefined, badgeColor: "bg-amber-500", rolesAllowed: ["ADMIN", "SALES", "PRODUCTION", "ACCOUNTS"] },
-    { id: "new-order", label: "New Order", icon: PlusCircle, rolesAllowed: ["ADMIN", "SALES", "PRODUCTION"] },
+    { id: "job-order", label: "Job Order", icon: Layers, badge: pendingCount > 0 ? pendingCount : undefined, badgeColor: "bg-amber-500", rolesAllowed: ["ADMIN", "SALES", "PRODUCTION"] },
+    { id: "new-order", label: "New Order", icon: PlusCircle, rolesAllowed: ["ADMIN", "SALES"] },
     { id: "master-data", label: "Master Data", icon: Database, rolesAllowed: ["ADMIN", "SALES", "PRODUCTION", "ACCOUNTS"] },
-    { id: "inventory", label: "Inventory", icon: Boxes, badge: lowStockCount > 0 ? lowStockCount : undefined, badgeColor: "bg-red-500", rolesAllowed: ["ADMIN", "ACCOUNTS", "PRODUCTION"] },
-    { id: "completed", label: "Completed", icon: CheckCircle, rolesAllowed: ["ADMIN", "SALES", "PRODUCTION", "ACCOUNTS"] },
-    { id: "on-hold", label: "On Hold", icon: PauseCircle, badge: holdCount > 0 ? holdCount : undefined, badgeColor: "bg-amber-600", rolesAllowed: ["ADMIN", "SALES", "PRODUCTION", "ACCOUNTS"] },
-    { id: "cancelled", label: "Cancelled", icon: XCircle, badge: cancelledCount > 0 ? cancelledCount : undefined, badgeColor: "bg-slate-500", rolesAllowed: ["ADMIN", "SALES", "PRODUCTION", "ACCOUNTS"] },
-    { id: "job-history", label: "Job History", icon: History, rolesAllowed: ["ADMIN", "ACCOUNTS"] },
+    { id: "inventory", label: "Inventory", icon: Boxes, badge: lowStockCount > 0 ? lowStockCount : undefined, badgeColor: "bg-red-500", rolesAllowed: ["ADMIN", "PRODUCTION", "ACCOUNTS"] },
+    { id: "completed", label: "Completed", icon: CheckCircle, rolesAllowed: ["ADMIN", "SALES", "PRODUCTION"] },
+    { id: "on-hold", label: "On Hold", icon: PauseCircle, badge: holdCount > 0 ? holdCount : undefined, badgeColor: "bg-amber-600", rolesAllowed: ["ADMIN", "SALES", "PRODUCTION"] },
+    { id: "cancelled", label: "Cancelled", icon: XCircle, badge: cancelledCount > 0 ? cancelledCount : undefined, badgeColor: "bg-slate-500", rolesAllowed: ["ADMIN", "SALES", "PRODUCTION"] },
+    { id: "job-history", label: "Job History", icon: History, rolesAllowed: ["ADMIN", "PRODUCTION", "ACCOUNTS"] },
     { id: "purchase-order", label: "Purchase Order", icon: ShoppingCart, rolesAllowed: ["ADMIN", "ACCOUNTS"] },
     { id: "quotation", label: "Quotation", icon: FileSpreadsheet, rolesAllowed: ["ADMIN", "SALES", "ACCOUNTS"] },
-    { id: "calculators", label: "Cost Calculators", icon: Calculator, rolesAllowed: ["ADMIN", "SALES", "PRODUCTION", "ACCOUNTS"] },
+    { id: "calculators", label: "Cost Calculators", icon: Calculator, rolesAllowed: ["ADMIN", "SALES", "PRODUCTION"] },
     { id: "reports", label: "Reports", icon: BarChart3, rolesAllowed: ["ADMIN", "ACCOUNTS"] },
   ];
 
@@ -156,8 +156,8 @@ export default function ErpNavbar() {
 
         {/* Right Top Actions */}
         <div className="flex items-center gap-3">
-          {/* Quick New Order Button */}
-          {currentUser.role !== "ACCOUNTS" && (
+          {/* Quick New Order Button (Admin & Sales only) */}
+          {(currentUser.role === "ADMIN" || currentUser.role === "SALES") && (
             <button
               onClick={() => setActiveTab("new-order")}
               className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md transition-transform hover:scale-105 active:scale-95"
@@ -343,6 +343,21 @@ export default function ErpNavbar() {
                       onClick={() => {
                         setCurrentUserRole(r.role);
                         setRoleDropdownOpen(false);
+
+                        // Check if current active tab is permitted for the new role
+                        const allowedTabsForNewRole = tabs
+                          .filter((t) => t.rolesAllowed.includes(r.role))
+                          .map((t) => t.id);
+
+                        if (!allowedTabsForNewRole.includes(activeTab)) {
+                          const defaultTabMap: Record<UserRole, ErpTab> = {
+                            ADMIN: "job-order",
+                            SALES: "new-order",
+                            PRODUCTION: "job-order",
+                            ACCOUNTS: "purchase-order",
+                          };
+                          setActiveTab(defaultTabMap[r.role] || "master-data");
+                        }
                       }}
                       className={`w-full text-left p-2.5 rounded-xl text-xs transition-colors flex items-start justify-between ${
                         currentUser.role === r.role

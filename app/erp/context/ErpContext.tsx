@@ -100,6 +100,7 @@ interface ErpContextType {
 
   addEmployee: (emp: Omit<EmployeeMaster, "id">) => void;
   deleteEmployee: (id: string) => void;
+  toggleLockEmployee: (id: string) => void;
 
   addMachine: (mac: Omit<MachineMaster, "id">) => void;
   deleteMachine: (id: string) => void;
@@ -214,7 +215,10 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
     const isValidPassword =
       secret === "1234" ||
       secret === "perfect123" ||
-      secret === "admin123";
+      secret === "admin123" ||
+      secret === "sales123" ||
+      secret === "prod123" ||
+      secret === "acc123";
 
     const isValidUsername =
       !!matchedAdmin ||
@@ -306,10 +310,69 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
       if (savedOrders) setOrders(JSON.parse(savedOrders));
 
       const savedCust = localStorage.getItem("pp_erp_customers");
-      if (savedCust) setCustomers(JSON.parse(savedCust));
+      if (savedCust) {
+        try {
+          const parsed = JSON.parse(savedCust);
+          if (Array.isArray(parsed) && parsed.length >= 20) {
+            setCustomers(parsed);
+          } else {
+            setCustomers(INITIAL_CUSTOMERS);
+            localStorage.setItem("pp_erp_customers", JSON.stringify(INITIAL_CUSTOMERS));
+          }
+        } catch {
+          setCustomers(INITIAL_CUSTOMERS);
+        }
+      } else {
+        setCustomers(INITIAL_CUSTOMERS);
+      }
 
       const savedJobs = localStorage.getItem("pp_erp_jobs");
-      if (savedJobs) setJobs(JSON.parse(savedJobs));
+      if (savedJobs) {
+        try {
+          const parsedJobs = JSON.parse(savedJobs);
+          if (Array.isArray(parsedJobs) && parsedJobs.length >= 5) {
+            setJobs(parsedJobs);
+          } else {
+            setJobs(INITIAL_JOBS);
+          }
+        } catch {
+          setJobs(INITIAL_JOBS);
+        }
+      }
+
+      const savedEmp = localStorage.getItem("pp_erp_employees");
+      if (savedEmp) {
+        try {
+          const parsedEmp = JSON.parse(savedEmp);
+          if (Array.isArray(parsedEmp) && parsedEmp.length >= 10) {
+            setEmployees(parsedEmp);
+          } else {
+            setEmployees(INITIAL_EMPLOYEES);
+            localStorage.setItem("pp_erp_employees", JSON.stringify(INITIAL_EMPLOYEES));
+          }
+        } catch {
+          setEmployees(INITIAL_EMPLOYEES);
+        }
+      } else {
+        setEmployees(INITIAL_EMPLOYEES);
+      }
+
+      const savedMac = localStorage.getItem("pp_erp_machines");
+      if (savedMac) {
+        try {
+          const parsedMac = JSON.parse(savedMac);
+          if (Array.isArray(parsedMac) && parsedMac.length >= 4) {
+            setMachines(parsedMac);
+          } else {
+            setMachines(INITIAL_MACHINES);
+            localStorage.setItem("pp_erp_machines", JSON.stringify(INITIAL_MACHINES));
+          }
+        } catch {
+          setMachines(INITIAL_MACHINES);
+        }
+      } else {
+        setMachines(INITIAL_MACHINES);
+      }
 
       const savedInv = localStorage.getItem("pp_erp_inventory");
       if (savedInv) setInventory(JSON.parse(savedInv));
@@ -599,38 +662,60 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
 
   const addEmployee = (empData: Omit<EmployeeMaster, "id">) => {
     const newEmp: EmployeeMaster = { id: `emp-${Date.now()}`, ...empData };
-    setEmployees([newEmp, ...employees]);
+    const updated = [newEmp, ...employees];
+    setEmployees(updated);
+    saveToStorage("pp_erp_employees", updated);
   };
 
   const deleteEmployee = (id: string) => {
-    setEmployees(employees.filter((e) => e.id !== id));
+    const updated = employees.filter((e) => e.id !== id);
+    setEmployees(updated);
+    saveToStorage("pp_erp_employees", updated);
+  };
+
+  const toggleLockEmployee = (id: string) => {
+    const updated = employees.map((e) => (e.id === id ? { ...e, isLocked: !e.isLocked } : e));
+    setEmployees(updated);
+    saveToStorage("pp_erp_employees", updated);
   };
 
   const addMachine = (macData: Omit<MachineMaster, "id">) => {
     const newMac: MachineMaster = { id: `mac-${Date.now()}`, ...macData };
-    setMachines([newMac, ...machines]);
+    const updated = [newMac, ...machines];
+    setMachines(updated);
+    saveToStorage("pp_erp_machines", updated);
   };
 
   const deleteMachine = (id: string) => {
-    setMachines(machines.filter((m) => m.id !== id));
+    const updated = machines.filter((m) => m.id !== id);
+    setMachines(updated);
+    saveToStorage("pp_erp_machines", updated);
   };
 
   const addProcess = (prcData: Omit<ProcessMaster, "id">) => {
     const newPrc: ProcessMaster = { id: `prc-${Date.now()}`, ...prcData };
-    setProcesses([newPrc, ...processes]);
+    const updated = [newPrc, ...processes];
+    setProcesses(updated);
+    saveToStorage("pp_erp_processes", updated);
   };
 
   const deleteProcess = (id: string) => {
-    setProcesses(processes.filter((p) => p.id !== id));
+    const updated = processes.filter((p) => p.id !== id);
+    setProcesses(updated);
+    saveToStorage("pp_erp_processes", updated);
   };
 
   const addAdmin = (admData: Omit<AdminMaster, "id">) => {
     const newAdm: AdminMaster = { id: `adm-${Date.now()}`, ...admData };
-    setAdmins([newAdm, ...admins]);
+    const updated = [newAdm, ...admins];
+    setAdmins(updated);
+    saveToStorage("pp_erp_admins", updated);
   };
 
   const deleteAdmin = (id: string) => {
-    setAdmins(admins.filter((a) => a.id !== id));
+    const updated = admins.filter((a) => a.id !== id);
+    setAdmins(updated);
+    saveToStorage("pp_erp_admins", updated);
   };
 
   // Inventory CRUD & Actions
@@ -804,6 +889,7 @@ export function ErpProvider({ children }: { children: React.ReactNode }) {
         deleteJob,
         addEmployee,
         deleteEmployee,
+        toggleLockEmployee,
         addMachine,
         deleteMachine,
         addProcess,
